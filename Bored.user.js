@@ -865,9 +865,7 @@ function BOREDInit() {
             if (BOREDConfig.SHOW_COMMENT_LINKS) {
                 commentLinking();
             }
-            if (BOREDConfig.HIDE_COMMENT_IMAGES) {
-                toggleCommentImages(true);
-            } else if (BOREDConfig.AUTO_EXPAND_COMMENT_IMAGES) {
+            if (!BOREDConfig.HIDE_COMMENT_IMAGES && BOREDConfig.AUTO_EXPAND_COMMENT_IMAGES) {
                 makeCommentImagesExpandable();
             }
         }
