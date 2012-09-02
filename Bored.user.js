@@ -30,10 +30,10 @@ function BOREDInit() {
         PANEL: {
             'Layout': {
                 MOVE_WATCHED_LINK: 'Move "Watched" Link to Top-Right Corner',
-                NOSTALGIA_MODE: 'Nostalgia Mode (Not Serious!)',
+                NOSTALGIA_MODE: 'Nostalgia Mode (Not Serious!)'
             },
             'Images': {
-                AUTO_EXPAND_COMMENT_IMAGES: 'Click to Expand Comment Images', 
+                AUTO_EXPAND_COMMENT_IMAGES: 'Click to Expand Comment Images',
                 ENABLE_FILE_UPLOAD_PREVIEW: 'Preview Manual File Uploads',
                 SHOW_ZOOM_CURSOR: 'Show Zoom Cursors',
                 SHOW_REVERSE_SEARCH_LINKS: 'Reverse Image Search Links'
@@ -43,9 +43,7 @@ function BOREDInit() {
                 ENABLE_MARKITUP: 'Enable markItUp! WYSIWYM Editing'
             }
         }
-    },
-    menusEnabled = false,
-    $imageInput;
+    }, menusEnabled = false, $imageInput;
 
     BOREDConfig.setOpt = function (optName, val) {
         BOREDConfig[optName] = val;
@@ -90,12 +88,12 @@ function BOREDInit() {
             top: '40px',
             width: '400px',
             zIndex: '9001',
-            overflow: 'hidden',
+            overflow: 'hidden'
         });
         $panelDiv.addClass('image_description');
         $('.field', $panelDiv).css({
             marginTop: '0.5em',
-            marginBottom: '0.5em',
+            marginBottom: '0.5em'
         });
         $('.field label', $panelDiv).css('width', '300px');
         $('h2,h3', $panelDiv).css('text-align', 'center');
@@ -117,7 +115,7 @@ function BOREDInit() {
             // It defaults to Courier New, lol
             fontFamily: 'verdana,arial,helvetica,sans-serif'
         });
-               
+
         $panelDiv.insertAfter('#header');
 
         $settingsLink.click(function () {
@@ -139,7 +137,7 @@ function BOREDInit() {
 
     BOREDConfig.BooleanWidget = function (name, label, initial) {
         var id = 'BORED-' + name,
-            $el = $('<div class="field"><input type="checkbox" id="' + id + 
+            $el = $('<div class="field"><input type="checkbox" id="' + id +
                     (initial ? '" checked="checked" ' : '" ') + '/>' +
                     '<label for="' + id + '">' + label + '</label></div>');
 
@@ -156,33 +154,47 @@ function BOREDInit() {
     };
 
     BOREDConfig.loadSettings = function () {
-        $.each(BOREDConfig, function(option, val) {
-            var cookie;
-            if (!(val instanceof Function) && option !== 'PANEL') {
-                cookie = $.cookie('BOREDConfig_' + option);
-                if (cookie && option !== 'PANEL') {
-                    BOREDConfig[option] = JSON.parse(cookie);
-                }
-            }
+        var cooks = document.cookie.split(/\s*;\s*/).map(function(cook) {
+            return cook.substring(0, cook.indexOf("="));
+        }).filter(function(cook) {
+            return cook.indexOf("BOREDConfig") === 0;
         });
+        // Checks if there are still some cookie-based config options
+        if (cooks.length) {
+            cooks.forEach(function(cook) {
+                var value = $.cookie(cook);
+                if (value && cook.slice(-5) !== "PANEL") {
+                    BOREDConfig[cook] = JSON.parse(value);
+                }
+                $.cookie(cook, null); // Erases the cookie.
+            });
+            this.saveSettings(); // Saves the settings with the new method
+        } else {
+            $.each(this, function(option, val) {
+                var value;
+                if (!(val instanceof Function) && option !== 'PANEL') {
+                    value = localStorage['BOREDConfig_' + option];
+                    if (value && option !== 'PANEL') {
+                        BOREDConfig[option] = JSON.parse(value);
+                    }
+                }
+            });
+        }
     };
 
     BOREDConfig.saveSettings = function () {
-        var decade = 10 * 365 * 24 * 3600;
-
         $.each(BOREDConfig, function(option, val) {
             if (!(val instanceof Function) && option !== 'PANEL') {
-                $.cookie('BOREDConfig_' + option, JSON.stringify(val),
-                    {path: '/', expires: decade});
+                localStorage['BOREDConfig_' + option] = JSON.stringify(val);
             }
         });
     };
-          
+
     // Slide-down menu functionality for the metabar.
     function SlideDownMenu($element, minWidth) {
-        var $m = $('<div class="slidedownmenu" ' + 
+        var $m = $('<div class="slidedownmenu" ' +
                    'style="display:inline;vertical-align:top;">' +
-                   '<div class="slidedownmenu-inner" ' + 
+                   '<div class="slidedownmenu-inner" ' +
                    'style="position:absolute;display:none;' +
                    'min-width:' + minWidth + '"></div></div>'),
             $menu = $('div.slidedownmenu-inner', $m);
@@ -202,7 +214,7 @@ function BOREDInit() {
 
         this.body = $menu;
         this.top = $m;
-    };
+    }
 
     // Utility function for inserting at caret for selected <textarea>s.
     // It's almost 4AM, and I don't feel like messing with DOM (or IE), so
@@ -210,22 +222,20 @@ function BOREDInit() {
     // http://stackoverflow.com/questions/946534/insert-text-into-textarea-with-jquery
     // Thanks go to Aniebiet Udoh.
     $.fn.extend({
-        insertAtCaret: function(myValue){
+        insertAtCaret: function(myValue) {
             return this.each(function(i) {
                 if (document.selection) {
                     //For browsers like Internet Explorer
                     this.focus();
-                    sel = document.selection.createRange();
-                    sel.text = myValue;
+                    document.selection.createRange().text = myValue;
                     this.focus();
-                }
-                else if (this.selectionStart || this.selectionStart == '0') {
+                } else if (this.selectionStart || this.selectionStart === 0) {
                     //For browsers like Firefox and Webkit based
-                    var startPos = this.selectionStart;
-                    var endPos = this.selectionEnd;
-                    var scrollTop = this.scrollTop;
+                    var startPos = this.selectionStart,
+                        endPos = this.selectionEnd,
+                        scrollTop = this.scrollTop;
                     this.value = this.value.substring(0, startPos) + myValue +
-                                 this.value.substring(endPos,this.value.length);
+                                 this.value.substring(endPos, this.value.length);
                     this.focus();
                     this.selectionStart = startPos + myValue.length;
                     this.selectionEnd = startPos + myValue.length;
@@ -243,7 +253,7 @@ function BOREDInit() {
         if ($.browser.mozilla) {
             return '-moz-zoom-in';
         }
-        else if ($.browser.webkit) {
+        if ($.browser.webkit) {
             return '-webkit-zoom-in';
         }
         // I need a URL.
@@ -254,13 +264,13 @@ function BOREDInit() {
         if ($.browser.mozilla) {
             return '-moz-zoom-out';
         }
-        else if ($.browser.webkit) {
+        if ($.browser.webkit) {
             return '-webkit-zoom-out';
         }
         return 'pointer';
     }
 
-    function ZoomCursors() {
+    function zoomCursors() {
         $('div#image_target').css('cursor', zoomIn()).click(function () {
             var $this = $(this);
             if ($this.data('expanded')) {
@@ -289,11 +299,11 @@ function BOREDInit() {
         $('div.metabar > div.metasection:nth-last-child(2)').prepend(menu.top);
 
         menu.body.append(
-          '<a style="display:block" href="https://www.google.com/' +
-          'searchbyimage?num=10&hl=en&site=imghp&image_url=' + url +
-          '" target="_blank">Google</a><a style="display:block" ' +
-          'href="http://www.tineye.com/search/?url=' + url +
-          '" target="_blank">TinEye</a></div></div>'
+            '<a style="display:block" href="https://www.google.com/' +
+                'searchbyimage?num=10&hl=en&site=imghp&image_url=' + url +
+                '" target="_blank">Google</a><a style="display:block" ' +
+                'href="http://www.tineye.com/search/?url=' + url +
+                '" target="_blank">TinEye</a></div></div>'
         );
     }
 
@@ -312,7 +322,7 @@ function BOREDInit() {
         $image.css('max-width', this.origWidth);
 
         this.shrinkImageSize();
-      
+
         $image.click(function () {
             if (expander.expanded) {
                 expander.shrinkImageSize();
@@ -331,7 +341,7 @@ function BOREDInit() {
             domImage.height = domImage.height / domImage.width * maxWidth;
             domImage.width = maxWidth;
         }
-  
+
         if (domImage.height > maxHeight) {
             domImage.width = domImage.width / domImage.height * maxHeight;
             domImage.height = maxHeight;
@@ -345,10 +355,7 @@ function BOREDInit() {
     };
 
     ImageResizer.prototype.expandImageSize = function () {
-        var $img = this.image,
-            domImage = this.domImage,
-            origWidth = this.origWidth,
-            origHeight = this.origHeight;
+        var $img = this.image;
 
         $img.attr('width', this.origWidth);
         $img.attr('height', this.origHeight);
@@ -358,7 +365,7 @@ function BOREDInit() {
         }
         $img.parent().css('overflow', 'visible');
         this.expanded = true;
-    }
+    };
 
     // Image Previewing on upload.
     function imagePreview($imageInput) {
@@ -512,7 +519,7 @@ function BOREDInit() {
         $commentImages.each(function () {
             $(this).css('display', 'none');
         });
-    }
+    };
 
     CommentImagesToggler.prototype.toggle = function (hide) {       
         if (hide) {
@@ -552,7 +559,7 @@ function BOREDInit() {
             [/(^|\W)\!(.+?)(?:\((.*)\))?\!(\W|$)/g,
              '$1<img src="$2" title="$3" alt="$3" />$4'],
             [/&quot;(.+?)(?:\((.*)\))?&quot;:([^\s<>]+)/,
-              '<a href="$3" title="$2">$1</a>'],  
+              '<a href="$3" title="$2">$1</a>'] 
         ];
     }
 
@@ -565,14 +572,14 @@ function BOREDInit() {
 
         while (outStr !== str) {
             str = outStr;
-            $.each(this.tokenMaps, function (i, v) {
+            this.tokenMaps.forEach(function(v) {
                 outStr = outStr.replace(v[0], v[1]);
             });
         }
 
         return outStr.replace(/\r?\n\r?\n/g, '</p><p>')
-                     .replace(/\r?\n/g, '<br />');;
-    }
+                     .replace(/\r?\n/g, '<br />');
+    };
 
     function SimpleTextileSubsetRenderer($markedUpTextarea) {
         this.parser = new SimpleTextileSubsetParser();
@@ -604,7 +611,7 @@ function BOREDInit() {
             insertImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYxIDY0LjE0MDk0OSwgMjAxMC8xMi8wNy0xMDo1NzowMSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo1ODQ5QjdEODBCRDNFMTExQTVBRjgxRDBDNDA3RkJBRSIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpERDFFOThDM0QzNEIxMUUxQjgxNkMyNTE3NDU5NkE1QiIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpERDFFOThDMkQzNEIxMUUxQjgxNkMyNTE3NDU5NkE1QiIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1LjEgV2luZG93cyI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjFBNjY1QTM0NEFEM0UxMTFBNkYxRURGM0E4QUREQTEwIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjU4NDlCN0Q4MEJEM0UxMTFBNUFGODFEMEM0MDdGQkFFIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+iqTydQAAATFJREFUeNrMUz1qhGAQHUN6sREvEdjcQDvLHGHrNEntKdKlzQGsbfUIGmyVBQvx/xf8RTMjCEEXdrNJkQFR5pv3vvdmRmaeZ/hNMP+LQNM0EV9i3/dQ1zXkeQ5ZlhlJkpyCIDj6vg9VVcE4jh+WZZ3OKlBV9a3ruhcqTNNUUhTFoLwkSWJZljqePdq2ba71d1tJeGuOt0IURbCCKXRdN9q2he9givstAclsmgZQ9s4vEWxjR+B5HqBUCMPwNgLXdRcC9LorHobhMkEcx0shTWIb2H1rm9s1Ef2b1AN6BEE4rHmO4w7TNOUXCdCnSV5JASoR1zyCX3HkxlWbyPP8Ey0Lglg8X2WbRVEcf7TKLMsuFhBoXrXKDMN8yrL8QN+O4yxjQyVwZleeEff+Jz/TlwADADkE3v7LFnqxAAAAAElFTkSuQmCC',
             previewImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAGrSURBVDjLvZPZLkNhFIV75zjvYm7VGFNCqoZUJ+roKUUpjRuqp61Wq0NKDMelGGqOxBSUIBKXWtWGZxAvobr8lWjChRgSF//dv9be+9trCwAI/vIE/26gXmviW5bqnb8yUK028qZjPfoPWEj4Ku5HBspgAz941IXZeze8N1bottSo8BTZviVWrEh546EO03EXpuJOdG63otJbjBKHkEp/Ml6yNYYzpuezWL4s5VMtT8acCMQcb5XL3eJE8VgBlR7BeMGW9Z4yT9y1CeyucuhdTGDxfftaBO7G4L+zg91UocxVmCiy51NpiP3n2treUPujL8xhOjYOzZYsQWANyRYlU4Y9Br6oHd5bDh0bCpSOixJiWx71YY09J5pM/WEbzFcDmHvwwBu2wnikg+lEj4mwBe5bC5h1OUqcwpdC60dxegRmR06TyjCF9G9z+qM2uCJmuMJmaNZaUrCSIi6X+jJIBBYtW5Cge7cd7sgoHDfDaAvKQGAlRZYc6ltJlMxX03UzlaRlBdQrzSCwksLRbOpHUSb7pcsnxCCwngvM2Rm/ugUCi84fycr4l2t8Bb6iqTxSCgNIAAAAAElFTkSuQmCC',
             header = document.getElementsByTagName('head')[0],
-            cssInlineDom = document.createElement('style');
+            cssInlineDom = document.createElement('style'), markItUp;
 
         // Execute markItUp! once it's loaded.
         function doMarkItUpInit() {
@@ -645,9 +652,9 @@ function BOREDInit() {
 
             function markCommentBodyUp() {
                 $('textarea').each(function () {
-                    var $this = $(this);
+                    var $this = $(this), stsr;
                     if (!$this.data('wysiwiymEnabled')) {
-                        var stsr = new SimpleTextileSubsetRenderer($this); 
+                        stsr = new SimpleTextileSubsetRenderer($this); 
                         settings.previewHandler = function (str) {
                             stsr.render(str);
                         };
@@ -664,7 +671,7 @@ function BOREDInit() {
 
         if (document.getElementsByTagName('textarea').length) {
             // MarkItUp! JS
-            var markItUp = document.createElement('script');
+            markItUp = document.createElement('script');
             markItUp.setAttribute('src', 'https://s3.amazonaws.com/Linkable' +
                                          'Libraries/jquery.markitup.js');
             header.appendChild(markItUp);
@@ -838,7 +845,7 @@ function BOREDInit() {
     BOREDConfig.makePanel();
 
     if (BOREDConfig.SHOW_ZOOM_CURSOR) {
-        ZoomCursors();
+        zoomCursors();
     }
   
     if (BOREDConfig.MOVE_WATCHED_LINK) {
