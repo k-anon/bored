@@ -5,7 +5,7 @@
 // @include     http://www.derpiboo.ru/*
 // @include     http://derpibooru.org/*
 // @include     http://www.derpibooru.org/*
-// @version     0.2.3
+// @version     0.2.4a
 // @updateURL   http://userscripts.org/scripts/source/137452.meta.js
 // @description Booru On Rails Extension Demo: Various (Likely Temp) Tweaks for Derpiboo.ru
 // ==/UserScript==
@@ -162,9 +162,9 @@ function BOREDInit() {
         // Checks if there are still some cookie-based config options
         if (cooks.length) {
             cooks.forEach(function(cook) {
-                var value = $.cookie(cook);
-                if (value && cook.slice(-5) !== "PANEL") {
-                    BOREDConfig[cook] = JSON.parse(value);
+                var value = $.cookie(cook), option = cook.substring(12);
+                if (value && option !== "PANEL") {
+                    BOREDConfig[option] = JSON.parse(value);
                 }
                 $.cookie(cook, null); // Erases the cookie.
             });
@@ -379,10 +379,10 @@ function BOREDInit() {
             $clearLink = 
                 $('<a href="#" style="margin-left:2em">\u2718 Clear</a>'),
             newImage = function (source) {
-               var img = new Image(),
-                   $img = $(img);
+                var img = new Image(),
+                    $img = $(img);
 
-               img.addEventListener('load', function (e) {
+                img.addEventListener('load', function (e) {
                     this.title = 'Original Dimensions: ' + e.target.width +
                                  'x' + e.target.height;
                     this.alt = 'Image Preview';
