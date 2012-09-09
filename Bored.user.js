@@ -26,6 +26,7 @@ function BOREDInit() {
         SHOW_COMMENT_LINKS: true,
         ENABLE_FILE_UPLOAD_PREVIEW: true,
         NOSTALGIA_MODE: false,
+        SAVE_DRAFTS: true,
 
         PANEL: {
             'Layout': {
@@ -40,10 +41,16 @@ function BOREDInit() {
             },
             'Comment Editing': {
                 SHOW_COMMENT_LINKS: 'Reply Links in Comments',
-                ENABLE_MARKITUP: 'Enable markItUp! WYSIWYM Editing'
+                ENABLE_MARKITUP: 'Enable markItUp! WYSIWYM Editing',
+                SAVE_DRAFTS: 'Save comment drafts'
             }
         }
-    }, menusEnabled = false, $imageInput;
+    }, menusEnabled = false,
+        $imageInput,
+        zin = $.browser.mozilla ? "-moz-zoom-in"
+                : $.browser.webkit ? "-webkit-zoom-in" : "pointer",
+        zout = $.browser.mozilla ? "-moz-zoom-out"
+                : $.browser.webkit ? "-webkit-zoom-out" : "pointer";
 
     BOREDConfig.setOpt = function (optName, val) {
         BOREDConfig[optName] = val;
@@ -248,37 +255,15 @@ function BOREDInit() {
         }
     });
 
-    // Mouse cursors for zoom-in/zoom-out.
-    function zoomIn() {
-        if ($.browser.mozilla) {
-            return '-moz-zoom-in';
-        }
-        if ($.browser.webkit) {
-            return '-webkit-zoom-in';
-        }
-        // I need a URL.
-        return 'pointer';
-    }
-
-    function zoomOut() {
-        if ($.browser.mozilla) {
-            return '-moz-zoom-out';
-        }
-        if ($.browser.webkit) {
-            return '-webkit-zoom-out';
-        }
-        return 'pointer';
-    }
-
     function zoomCursors() {
-        $('div#image_target').css('cursor', zoomIn()).click(function () {
+        $('div#image_target').css('cursor', zin).click(function () {
             var $this = $(this);
             if ($this.data('expanded')) {
                 $this.data('expanded', false);
-                $this.css('cursor', zoomIn());
+                $this.css('cursor', zin);
             } else {
                 $this.data('expanded', true);
-                $this.css('cursor', zoomOut());
+                $this.css('cursor', zout);
             }
         });
     }
@@ -305,6 +290,63 @@ function BOREDInit() {
                 'href="http://www.tineye.com/search/?url=' + url +
                 '" target="_blank">TinEye</a></div></div>'
         );
+    }
+
+    function loadDraft(draftId, txtSel) {
+        var draft = localStorage["BOREDDraft_" + draftId];
+        if (!draft) return;
+        try {
+            draft = JSON.parse(draft);
+        } catch(e) { // Something wrong has happened
+            localStorage.removeItem("BOREDDraft_" + draftId);
+            return;
+        }
+
+        if (draft.timeStamp < Date.now() - 12096e5) {
+            // Drafts older than 2 weeks are trashed
+            localStorage.removeItem("BOREDDraft_" + draftId);
+            return;
+        }
+        if (draft.content) {
+            // There shouldn't be empty drafts...
+            $(txtSel).val(draft.content);
+        }
+    }
+    // This is used just in one place, but could be used for a Save/Restore
+    // Draft button
+    function saveDraft(draftId, txtSel) {
+        var content = $(txtSel).val();
+        if (content)
+            localStorage["BOREDDraft_" + draftId] = JSON.stringify({
+                timeStamp: Date.now(),
+                content: content
+            });
+        else localStorage.removeItem("BOREDDraft_" + draftId);
+    }
+    function manageDrafts() {
+        var txtSel, draftId;
+        // The assignment in the if condition is intentional
+        if (draftId = location.pathname.match(/^\/(?:images\/)?(\d+)$/)) {
+            txtSel = "#comment_body";
+            draftId = draftId[1];
+            $('#comments').ajaxSend(function(evt, xhr, opts) {
+                // Saving the draft when changing comment page
+                if (opts.type === "GET") saveDraft(draftId, txtSel);
+            });
+            $('#comments').ajaxComplete(function(evt, xhr, opts) {
+                // If the request was a POST, then a comment was posted.
+                // saveDraft just trashes the draft, then.
+                if (opts.type === "POST") saveDraft(draftId, txtSel);
+                else loadDraft(draftId, txtSel);
+            });
+        } else if (draftId
+                = location.pathname.match(/^\/messages\/([\da-f]+)$/)) {
+            txtSel = "#body";
+            draftId = draftId[1];
+            loadDraft(draftId, txtSel);
+        }
+
+        $(window).unload(function() {saveDraft(draftId, txtSel);});
     }
 
     function ImageResizer($image, maxWidth, maxHeight) {
@@ -349,7 +391,7 @@ function BOREDInit() {
 
         this.image.parent().css('overflow', '');
         if (BOREDConfig.SHOW_ZOOM_CURSOR) {
-            this.image.css('cursor', zoomIn());
+            this.image.css('cursor', zin);
         }
         this.expanded = false;
     };
@@ -361,7 +403,7 @@ function BOREDInit() {
         $img.attr('height', this.origHeight);
 
         if (BOREDConfig.SHOW_ZOOM_CURSOR) {
-            $img.css('cursor', zoomOut());
+            $img.css('cursor', zout);
         }
         $img.parent().css('overflow', 'visible');
         this.expanded = true;
@@ -430,8 +472,7 @@ function BOREDInit() {
 
         function setupHeader($commentHeader) {
             var name = $.trim($commentHeader.find('strong').text()),
-                id = $commentHeader.find('a').last().attr('href')
-                                   .split('#')[1],
+                id = $commentHeader.find('a').last().attr('href').split('#')[1],
                 $mentionLink = $('<a href="#">#Mention</a>'),
                 $replyLink = $('<a href="#">@Reply</a>');
 
@@ -854,6 +895,10 @@ function BOREDInit() {
 
     if (BOREDConfig.SHOW_REVERSE_SEARCH_LINKS && $('div#image_target').length) {
         relImages();
+    }
+
+    if (BOREDConfig.SAVE_DRAFTS) {
+        manageDrafts();
     }
 
     if (BOREDConfig.ENABLE_FILE_UPLOAD_PREVIEW) {
