@@ -344,6 +344,9 @@ function BOREDInit() {
             txtSel = "#body";
             draftId = draftId[1];
             loadDraft(draftId, txtSel);
+            $($(txtSel)[0].form).submit(function() {
+                localStorage.removeItem("BOREDDraft_" + draftId);
+            });
         }
 
         $(window).unload(function() {saveDraft(draftId, txtSel);});
