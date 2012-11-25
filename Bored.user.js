@@ -5,7 +5,7 @@
 // @include     http://www.derpiboo.ru/*
 // @include     http://derpibooru.org/*
 // @include     http://www.derpibooru.org/*
-// @version     0.2.4a
+// @version     0.2.5
 // @updateURL   http://userscripts.org/scripts/source/137452.meta.js
 // @description Booru On Rails Extension Demo: Various (Likely Temp) Tweaks for Derpiboo.ru
 // ==/UserScript==
@@ -27,11 +27,13 @@ function BOREDInit() {
         ENABLE_FILE_UPLOAD_PREVIEW: true,
         NOSTALGIA_MODE: false,
         SAVE_DRAFTS: true,
+        ENABLE_RANDOM_BUTTON: true,
 
         PANEL: {
             'Layout': {
                 MOVE_WATCHED_LINK: 'Move "Watched" Link to Top-Right Corner',
-                NOSTALGIA_MODE: 'Nostalgia Mode (Not Serious!)'
+                NOSTALGIA_MODE: 'Nostalgia Mode (Not Serious!)',
+                ENABLE_RANDOM_BUTTON: 'Random Image Link (Fun! Fun! Fun!)'
             },
             'Images': {
                 AUTO_EXPAND_COMMENT_IMAGES: 'Click to Expand Comment Images',
@@ -42,7 +44,7 @@ function BOREDInit() {
             'Comment Editing': {
                 SHOW_COMMENT_LINKS: 'Reply Links in Comments',
                 ENABLE_MARKITUP: 'Enable markItUp! WYSIWYM Editing',
-                SAVE_DRAFTS: 'Save comment drafts'
+                SAVE_DRAFTS: 'Save comment draft on unload. (Recommended!)'
             }
         }
     }, menusEnabled = false,
@@ -276,24 +278,34 @@ function BOREDInit() {
 
     // Related images link. I should probably make this a menu for TinEye, too.
     function relImages() {
-        var url = $('div.metabar > div.metasection:nth-last-child(2) > ' +
-                    'a:first-child').attr('href'),
-            $header = $('<a href="#">Rev. Img. Search \u25BC</a>'),
+        var $metabar = $('div.metabar'),
+            $insertPoint,
+            url,
+            $header,
+            menu;
+
+        if (!$metabar.data('attachedRel')) {
+            $insertPoint = $metabar.find('div.metasection:nth-last-child(2)');
+            url =  $insertPoint.find('a:first-child').attr('href');
+            $header = $('<a href="#">Rev. Img. Search \u25BC</a>');
             menu = new SlideDownMenu($header, '12em');
-
-        $('div.metabar > div.metasection:nth-last-child(2)').prepend(menu.top);
-
-        menu.body.append(
-            '<a style="display:block" href="https://www.google.com/' +
-                'searchbyimage?num=10&hl=en&site=imghp&image_url=' + url +
-                '" target="_blank">Google</a><a style="display:block" ' +
-                'href="http://www.tineye.com/search/?url=' + url +
-                '" target="_blank">TinEye</a></div></div>'
-        );
+        
+            $insertPoint.prepend(menu.top);
+        
+            menu.body.append(
+                '<a style="display:block" href="https://www.google.com/' +
+                    'searchbyimage?num=10&hl=en&site=imghp&image_url=' + url +
+                    '" target="_blank">Google</a><a style="display:block" ' +
+                    'href="http://www.tineye.com/search/?url=' + url +
+                    '" target="_blank">TinEye</a></div></div>'
+            );
+            $metabar.data('attachedRel', true);
+        }
     }
-
+    
     function loadDraft(draftId, txtSel) {
         var draft = localStorage["BOREDDraft_" + draftId];
+
         if (!draft) return;
         try {
             draft = JSON.parse(draft);
@@ -312,8 +324,7 @@ function BOREDInit() {
             $(txtSel).val(draft.content);
         }
     }
-    // This is used just in one place, but could be used for a Save/Restore
-    // Draft button
+
     function saveDraft(draftId, txtSel) {
         var content = $(txtSel).val();
         if (content)
@@ -323,22 +334,33 @@ function BOREDInit() {
             });
         else localStorage.removeItem("BOREDDraft_" + draftId);
     }
+
     function manageDrafts() {
-        var txtSel, draftId;
+        var txtSel, draftId, $comments, firstTime = true;
+
         // The assignment in the if condition is intentional
         if (draftId = location.pathname.match(/^\/(?:images\/)?(\d+)$/)) {
             txtSel = "#comment_body";
             draftId = draftId[1];
-            $('#comments').ajaxSend(function(evt, xhr, opts) {
+            $comments = $('#comments');
+            $comments.ajaxSend(function(evt, xhr, opts) {
                 // Saving the draft when changing comment page
-                if (opts.type === "GET") saveDraft(draftId, txtSel);
+                if (opts.url.indexOf('/images/' + draftId + '/comments')
+                        !== -1) {
+                    if (firstTime) {
+                        firstTime = false;
+                    } else if (opts.type === "GET") {
+                        saveDraft(draftId, txtSel);
+                    }
+                }
             });
-            $('#comments').ajaxComplete(function(evt, xhr, opts) {
+            $comments.ajaxComplete(function(evt, xhr, opts) {
                 // If the request was a POST, then a comment was posted.
                 // saveDraft just trashes the draft, then.
                 if (opts.type === "POST") saveDraft(draftId, txtSel);
                 else loadDraft(draftId, txtSel);
             });
+            loadDraft(draftId, txtSel);
         } else if (draftId
                 = location.pathname.match(/^\/messages\/([\da-f]+)$/)) {
             txtSel = "#body";
@@ -654,8 +676,21 @@ function BOREDInit() {
             superscriptImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAQAAAC1+jfqAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYxIDY0LjE0MDk0OSwgMjAxMC8xMi8wNy0xMDo1NzowMSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDpERkYyQjI1ODA4RDNFMTExQTVBRjgxRDBDNDA3RkJBRSIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo2MzYyMzhEQkQzNEMxMUUxQkQyRkMzMTJFQzY1M0MwMCIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo2MzYyMzhEQUQzNEMxMUUxQkQyRkMzMTJFQzY1M0MwMCIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1LjEgV2luZG93cyI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjVCNDlCN0Q4MEJEM0UxMTFBNUFGODFEMEM0MDdGQkFFIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOkRGRjJCMjU4MDhEM0UxMTFBNUFGODFEMEM0MDdGQkFFIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+GdwPmAAAAMxJREFUKM9j+M+AHzKQqWD1u3n/U9P0/yuX41DQaJz4Ti9NuhyPFdrvJM/gdYPUKoE0uIIlDssuLP4/439LQLZD0H+bB8YOioLCZ1AcOUNh8oe2/wUKwRPMLxgIaM6UeidgjOaL+oaC/2EXLC7oC+DwZppA6Aer//oGOMPBy8H8v/5/9QU4FFgaGD/QdVB7IP9fSgGLAiMDvQeaQMNlCyT+ixzAUKCXoPVB9YI8UKfYAqH/Av/5J6Ap0DBQdpB1kAC6XtCB34EPCEmKTQCZjPE4N8a4DgAAAABJRU5ErkJggg==',
             insertImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYxIDY0LjE0MDk0OSwgMjAxMC8xMi8wNy0xMDo1NzowMSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo1ODQ5QjdEODBCRDNFMTExQTVBRjgxRDBDNDA3RkJBRSIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpERDFFOThDM0QzNEIxMUUxQjgxNkMyNTE3NDU5NkE1QiIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpERDFFOThDMkQzNEIxMUUxQjgxNkMyNTE3NDU5NkE1QiIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1LjEgV2luZG93cyI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjFBNjY1QTM0NEFEM0UxMTFBNkYxRURGM0E4QUREQTEwIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjU4NDlCN0Q4MEJEM0UxMTFBNUFGODFEMEM0MDdGQkFFIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+iqTydQAAATFJREFUeNrMUz1qhGAQHUN6sREvEdjcQDvLHGHrNEntKdKlzQGsbfUIGmyVBQvx/xf8RTMjCEEXdrNJkQFR5pv3vvdmRmaeZ/hNMP+LQNM0EV9i3/dQ1zXkeQ5ZlhlJkpyCIDj6vg9VVcE4jh+WZZ3OKlBV9a3ruhcqTNNUUhTFoLwkSWJZljqePdq2ba71d1tJeGuOt0IURbCCKXRdN9q2he9givstAclsmgZQ9s4vEWxjR+B5HqBUCMPwNgLXdRcC9LorHobhMkEcx0shTWIb2H1rm9s1Ef2b1AN6BEE4rHmO4w7TNOUXCdCnSV5JASoR1zyCX3HkxlWbyPP8Ey0Lglg8X2WbRVEcf7TKLMsuFhBoXrXKDMN8yrL8QN+O4yxjQyVwZleeEff+Jz/TlwADADkE3v7LFnqxAAAAAElFTkSuQmCC',
             previewImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAGrSURBVDjLvZPZLkNhFIV75zjvYm7VGFNCqoZUJ+roKUUpjRuqp61Wq0NKDMelGGqOxBSUIBKXWtWGZxAvobr8lWjChRgSF//dv9be+9trCwAI/vIE/26gXmviW5bqnb8yUK028qZjPfoPWEj4Ku5HBspgAz941IXZeze8N1bottSo8BTZviVWrEh546EO03EXpuJOdG63otJbjBKHkEp/Ml6yNYYzpuezWL4s5VMtT8acCMQcb5XL3eJE8VgBlR7BeMGW9Z4yT9y1CeyucuhdTGDxfftaBO7G4L+zg91UocxVmCiy51NpiP3n2treUPujL8xhOjYOzZYsQWANyRYlU4Y9Br6oHd5bDh0bCpSOixJiWx71YY09J5pM/WEbzFcDmHvwwBu2wnikg+lEj4mwBe5bC5h1OUqcwpdC60dxegRmR06TyjCF9G9z+qM2uCJmuMJmaNZaUrCSIi6X+jJIBBYtW5Cge7cd7sgoHDfDaAvKQGAlRZYc6ltJlMxX03UzlaRlBdQrzSCwksLRbOpHUSb7pcsnxCCwngvM2Rm/ugUCi84fycr4l2t8Bb6iqTxSCgNIAAAAAElFTkSuQmCC',
+            draftImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYxIDY0LjE0MDk0OSwgMjAxMC8xMi8wNy0xMDo1NzowMSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6OUJEQUVDQkUzMzdGMTFFMkI0MEREODc1RkU2Q0IyNUEiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6OUJEQUVDQkQzMzdGMTFFMkI0MEREODc1RkU2Q0IyNUEiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNS4xIFdpbmRvd3MiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmRpZDpDMTYxRTVFOTdFMzNFMjExODcxRTk4MDIxODdGOEIzNSIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpDMTYxRTVFOTdFMzNFMjExODcxRTk4MDIxODdGOEIzNSIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PrJskssAAAGYUExURQQEBPv7+wsLCwwMDAMDA+zs7A0NDQUFBQYGBra2tikpKRQUFPyxG6qqqiMjI2RkZPDw8FxcXCoqKhoaGpqamqyikd3d3aOjo6ioqDEmE8XFxcbGxunp6aurq9bW1kNDQ0dHR+jo6CYmJv77/v3z/fb29v/9//y3PvnKXdDQ0OWeGfbS+f7dnF1aVjs0KP75/v31/hIPDP7Vfvy2O/nHKFtbW/729ayJMXR0dK1fEeDa4f7LKfn5+bSysP7HJKmpqf2/IBsbG8pvFPnBIjo6OhgQCAoKCgcHB3RBDtbSz9LS0hUMA/XJ+BERERgYGP3EI/28HyshEfSsK9nZ2f///z4+PvPz8/arG8xyFFBAIv22Hc7Ozvy1Nr29vWs9D8nJyf3w2P24K8e/szk5OWdaRfbfs/vIQJOTk/Hx8f/36emhMvXI+KSkpOHh4e7W7n19fe67I9/f3/KrI/nn7fPD9/fW+fbt3gEBAQYDAbq6ut7e3tra2urS7MB5FWpqakMkB9bV1Jubmw4ODr15GyAgIP3FIwAAAP///42JeAQAAACIdFJOU////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wAYt9YPAAAA10lEQVQYGQXBA2IDAQBFwb8bO6lt225T27Zt29h37c4IAAAAQJD//DJzFgagYBaR5ntwB2PmDuahqvQO4bAsyy67O3Ol4Xz0JE8YY987cYkh30DFfsvrba4I23qjBjwtXf5t3VQihs2sJAP26jqvNwFRbIukG5S1TpbsAogNW33AqOlYnk4OAgiPGQkUTfhX4/tjAcSpWd7Y46+9D7m8AOKr7+dtofDI06V3ANG+3r14vN00rt8MADH00Tw45ZTLmwqA+KweeZQz58IBAKItIWXtKvsQAOAfF8xWDojKVBgAAAAASUVORK5CYII=',
             header = document.getElementsByTagName('head')[0],
-            cssInlineDom = document.createElement('style'), markItUp;
+            cssInlineDom = document.createElement('style'),
+            id = (
+                location.pathname.match(
+                    /^\/(?:images\/)?(\d+)$/
+                ) || location.pathname.match(
+                    /^\/messages\/([\da-f]+)$/
+                )
+            ),
+            markItUp;
+
+        if (id) {
+            id = id[1];
+        }
 
         // Execute markItUp! once it's loaded.
         function doMarkItUpInit() {
@@ -670,38 +705,50 @@ function BOREDInit() {
                 markupSet: [
                    {name:'Bold', key:'B', closeWith:'(!(*|!|*])!)',
                     openWith:'(!(*|!|[*)!)', multiline: true}, 
-                    {name:'Italic', key:'I', closeWith:'(!(_|!|_])!)',
-                     openWith:'(!(_|!|[_)!)', multiline: true},
-                    {name:'Strike-through', key:'S', closeWith:'(!(-|!|-])!)',
-                     openWith:'(!(-|!|[-)!)', multiline: true},
-                    {name:'Underline', key:'U', closeWith:'(!(+|!|+])!)',
-                     openWith:'(!(+|!|[+)!)', multiline: true},
-                    {separator:'---------------' },
-                    {name:'Picture', replaceWith:'![![Source:!:http://]!]' +
-                                                 '([![Alternative text]!])!'},
-                    {name:'Link', openWith:'"',
-                     closeWith:'([![Title]!])":' +'[![Link:!:http://]!]',
-                     placeHolder:'Your text to link here...',
-                     multiline: true },
-                    {separator:'---------------' },
-                    {name:'Superscript', closeWith:'(!(^]|!|^)!)',
-                     openWith:'(!([^|!|^)!)', multiline: true},
-                    {name:'Subscript', closeWith:'(!(~]|!|~)!)',
-                     openWith:'(!([~|!|~)!)', multiline:true},
-                    {name:'Code', openWith:'@', closeWith:'@', multiline: true},
-                    {separator:'---------------' },
-                    {name:'Preview', call:'preview', className:'prevButton'}
+                   {name:'Italic', key:'I', closeWith:'(!(_|!|_])!)',
+                    openWith:'(!(_|!|[_)!)', multiline: true},
+                   {name:'Strike-through', key:'S', closeWith:'(!(-|!|-])!)',
+                    openWith:'(!(-|!|[-)!)', multiline: true},
+                   {name:'Underline', key:'U', closeWith:'(!(+|!|+])!)',
+                    openWith:'(!(+|!|[+)!)', multiline: true},
+                   {separator:'---------------'},
+                   {name:'Picture', replaceWith:'![![Source:!:http://]!]' +
+                                                '([![Alternative text]!])!'},
+                   {name:'Link', openWith:'"',
+                    closeWith:'([![Title]!])":' +'[![Link:!:http://]!]',
+                    placeHolder:'Your text to link here...',
+                    multiline: true },
+                   {separator:'---------------'},
+                   {name:'Superscript', closeWith:'(!(^]|!|^)!)',
+                    openWith:'(!([^|!|^)!)', multiline: true},
+                   {name:'Subscript', closeWith:'(!(~]|!|~)!)',
+                    openWith:'(!([~|!|~)!)', multiline:true},
+                   {name:'Code', openWith:'@', closeWith:'@', multiline: true},
+                   {separator:'---------------'},
+                   {name:'Preview', call:'preview', className:'prevButton'},
+                   {name:'Save Draft', call:'options.saveDraft',
+                    className: 'draftButton'}
                 ]
             };
-
+            
             function markCommentBodyUp() {
                 $('textarea').each(function () {
-                    var $this = $(this), stsr;
+                    var $this = $(this),
+                        stsr,
+                        el;
+
                     if (!$this.data('wysiwiymEnabled')) {
                         stsr = new SimpleTextileSubsetRenderer($this); 
                         settings.previewHandler = function (str) {
                             stsr.render(str);
                         };
+                        if (this.id === 'comment_body' || this.id === 'body') {
+                            el = this;
+
+                            settings.saveDraft = function () {
+                                saveDraft(id, el);
+                            };
+                        }
                         $this.markItUp(settings);
                         $this.data('wysiwiymEnabled', true);
                     }
@@ -870,6 +917,9 @@ function BOREDInit() {
                 '.bored .markItUpButton9 a {' +
                 '    background-image: url(' + codeImg + ');' +
                 '}' +
+                '.bored .draftButton a {' +
+                '   background-image:url(' + draftImg + ');' +
+                '}' +
                 '.bored .prevButton a {' +
                 '   background-image:url(' + previewImg + ');' +
                 '}' +
@@ -881,6 +931,60 @@ function BOREDInit() {
                 '}';
 
             header.appendChild(cssInlineDom);
+        }
+    }
+
+    // Random Image Button. (It's fun!)
+    function doRandomImage() {
+        var $imageList = $('#imagelist_container');
+        
+        function makeLink(url, $el, takeFromJson) {
+            var biggestNum,
+                imgNum,
+                maxIndex;
+
+            if (!$el.data('randomLinkAdded')) {
+                $.get(url, function(data) {
+                    if (takeFromJson) {
+                        maxIndex = data.length - 1;
+                        imgNum = data[Math.floor(Math.random() * maxIndex)]
+                                 .id_number;
+                    } else {
+                        biggestNum = data[0].id_number;
+                        imgNum = Math.floor(Math.random() * biggestNum);
+                    }
+                    $el.append(
+                        '<div class="metasection">' + 
+                        '    <a href="/images/' + imgNum +
+                             '" style="background-color: pink">' +
+                        '        Random Img.' +
+                        '    </a>' +
+                        '</div>'
+                    );
+                });
+
+                $el.data('randomLinkAdded', true);
+            }
+        }
+
+        if ($imageList.find('.metasection').first().text().indexOf('All Images')
+                    !== -1) {
+            makeLink('/images.json',
+                     $imageList.find('.metabar, .lightmetabar'));
+        } else if ($('#image_target').length > 0) {
+            makeLink('/images.json', $('.metabar').first());
+        } else if ($imageList.find('.metasection').first().text()
+                             .indexOf('Top Commented') !== -1) {
+            makeLink('/lists/top_commented.json',
+                     $imageList.find('.metabar, .lightmetabar'), true);
+        } else if ($imageList.find('.metasection').first().text()
+                             .indexOf('All Time Top Scoring') !== -1) {
+            makeLink('/lists/all_time_top_scoring.json',
+                     $imageList.find('.metabar, .lightmetabar'), true);
+        } else if ($imageList.find('.metasection').first().text()
+                             .indexOf('Top Scoring') !== -1) {
+            makeLink('/lists/top_scoring.json',
+                     $imageList.find('.metabar, .lightmetabar'), true);
         }
     }
    
@@ -898,8 +1002,9 @@ function BOREDInit() {
 
     if (BOREDConfig.SHOW_REVERSE_SEARCH_LINKS && $('div#image_target').length) {
         relImages();
+        $(document).ajaxComplete(relImages);
     }
-
+    
     if (BOREDConfig.SAVE_DRAFTS) {
         manageDrafts();
     }
@@ -918,13 +1023,19 @@ function BOREDInit() {
             if (BOREDConfig.SHOW_COMMENT_LINKS) {
                 commentLinking();
             }
-            if (!BOREDConfig.HIDE_COMMENT_IMAGES && BOREDConfig.AUTO_EXPAND_COMMENT_IMAGES) {
+            if (!BOREDConfig.HIDE_COMMENT_IMAGES &&
+                BOREDConfig.AUTO_EXPAND_COMMENT_IMAGES) {
                 makeCommentImagesExpandable();
             }
         }
         if (BOREDConfig.ENABLE_MARKITUP) {
             doMarkItUp();
         }
+    }
+    
+    if (BOREDConfig.ENABLE_RANDOM_BUTTON) {
+        doRandomImage();
+        $(document).ajaxComplete(doRandomImage);
     }
 
     // Honestly, this is a bit insulting to the site, but I figured it'd be
