@@ -5,7 +5,7 @@
 // @include     http://www.derpiboo.ru/*
 // @include     http://derpibooru.org/*
 // @include     http://www.derpibooru.org/*
-// @version     0.2.5
+// @version     0.2.5b
 // @updateURL   http://userscripts.org/scripts/source/137452.meta.js
 // @description Booru On Rails Extension Demo: Various (Likely Temp) Tweaks for Derpiboo.ru
 // ==/UserScript==
@@ -938,53 +938,42 @@ function BOREDInit() {
     function doRandomImage() {
         var $imageList = $('#imagelist_container');
         
-        function makeLink(url, $el, takeFromJson) {
+        function makeLink(url, takeFromJson) {
             var biggestNum,
                 imgNum,
                 maxIndex;
 
-            if (!$el.data('randomLinkAdded')) {
-                $.get(url, function(data) {
-                    if (takeFromJson) {
-                        maxIndex = data.length - 1;
-                        imgNum = data[Math.floor(Math.random() * maxIndex)]
-                                 .id_number;
-                    } else {
-                        biggestNum = data[0].id_number;
-                        imgNum = Math.floor(Math.random() * biggestNum);
-                    }
-                    $el.append(
-                        '<div class="metasection">' + 
-                        '    <a href="/images/' + imgNum +
-                             '" style="background-color: pink">' +
-                        '        Random Img.' +
-                        '    </a>' +
-                        '</div>'
-                    );
-                });
-
-                $el.data('randomLinkAdded', true);
-            }
+            $.get(url, function(data) {
+                if (takeFromJson) {
+                    maxIndex = data.length - 1;
+                    imgNum = data[Math.floor(Math.random() * maxIndex)]
+                             .id_number;
+                } else {
+                    biggestNum = data[0].id_number;
+                    imgNum = Math.floor(Math.random() * biggestNum);
+                }
+                $('.searchbox').before(
+                    '<div class="metasection">' + 
+                    '    <a href="/images/' + imgNum +
+                         '" style="background-color: pink">' +
+                    '        Random Img.' +
+                    '    </a>' +
+                    '</div>'
+                );
+            });
         }
 
-        if ($imageList.find('.metasection').first().text().indexOf('All Images')
-                    !== -1) {
-            makeLink('/images.json',
-                     $imageList.find('.metabar, .lightmetabar'));
-        } else if ($('#image_target').length > 0) {
-            makeLink('/images.json', $('.metabar').first());
-        } else if ($imageList.find('.metasection').first().text()
+        if ($imageList.find('.metasection').first().text()
                              .indexOf('Top Commented') !== -1) {
-            makeLink('/lists/top_commented.json',
-                     $imageList.find('.metabar, .lightmetabar'), true);
+            makeLink('/lists/top_commented.json', true);
         } else if ($imageList.find('.metasection').first().text()
                              .indexOf('All Time Top Scoring') !== -1) {
-            makeLink('/lists/all_time_top_scoring.json',
-                     $imageList.find('.metabar, .lightmetabar'), true);
+            makeLink('/lists/all_time_top_scoring.json', true);
         } else if ($imageList.find('.metasection').first().text()
                              .indexOf('Top Scoring') !== -1) {
-            makeLink('/lists/top_scoring.json',
-                     $imageList.find('.metabar, .lightmetabar'), true);
+            makeLink('/lists/top_scoring.json', true);
+        } else {
+            makeLink('/images.json');
         }
     }
    
@@ -1035,7 +1024,6 @@ function BOREDInit() {
     
     if (BOREDConfig.ENABLE_RANDOM_BUTTON) {
         doRandomImage();
-        $(document).ajaxComplete(doRandomImage);
     }
 
     // Honestly, this is a bit insulting to the site, but I figured it'd be
@@ -1043,14 +1031,14 @@ function BOREDInit() {
     // changed. I should add the sidebar thing later.
     if (BOREDConfig.NOSTALGIA_MODE) {
         $('div#header > a:first-child').text('Ponibooru')
-                .css({
-                    fontWeight: 'bold',
-                    color: '#006FFA'
-                }).hover(function () {
-                    $(this).css('color', '#33CFFF');
-                }, function () {
-                    $(this).css('color', '#006FFA');
-                });
+            .css({
+                fontWeight: 'bold',
+                color: '#006FFA'
+            }).hover(function () {
+                $(this).css('color', '#33CFFF');
+            }, function () {
+                $(this).css('color', '#006FFA');
+            });
     }   
 }
 
