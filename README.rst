@@ -12,7 +12,7 @@ imageboard ("booru") dedicated to the fine pieces of art associated with
 useful to regulars but are often outside the scope of the original board (and
 are likely to be implemented in Derpibooru proper otherwise.)
 
-The current "stable" version is **0.2.5b.** Users are recommended to acquire the
+The current "stable" version is **0.2.6.** Users are recommended to acquire the
 `release from Userscripts <http://userscripts.org/users/47082>`__. It is there
 you will also find the up-to-date features list. For power users interested in
 the "bleeding-edge," the ``develop`` branch is intended for the latest
