@@ -9,7 +9,7 @@
 // @include     https://www.derpiboo.ru/*
 // @include     https://derpibooru.org/*
 // @include     https://www.derpibooru.org/*
-// @version     0.2.6
+// @version     0.2.6b
 // @updateURL   http://userscripts.org/scripts/source/137452.meta.js
 // @description Booru On Rails Extension Demo: Various (Likely Temp) Tweaks for Derpiboo.ru
 // ==/UserScript==
@@ -822,7 +822,9 @@ function BOREDInit() {
 
     // Random Image Button. (It's fun!)
     function doRandomImage() {
-        var $imageList = $('#imagelist_container');
+        var $imageList = $('#imagelist_container'),
+            apiUrl,
+            extractNumber = false;
         
         function makeLink(url, takeFromJson) {
             var biggestNum,
@@ -851,16 +853,23 @@ function BOREDInit() {
 
         if ($imageList.find('.metasection').first().text()
                              .indexOf('Top Commented') !== -1) {
-            makeLink('/lists/top_commented.json', true);
+            apiUrl = '/lists/top_commented.json';
+            extractNumber = true;
         } else if ($imageList.find('.metasection').first().text()
                              .indexOf('All Time Top Scoring') !== -1) {
-            makeLink('/lists/all_time_top_scoring.json', true);
+            apiUrl = '/lists/all_time_top_scoring.json';
+            extractNumber = true;
         } else if ($imageList.find('.metasection').first().text()
                              .indexOf('Top Scoring') !== -1) {
-            makeLink('/lists/top_scoring.json', true);
+            apiUrl = '/lists/top_scoring.json';
+            extractNumber = true;
         } else {
-            makeLink('/images.json');
+            apiUrl = '/images.json';
         }
+        
+        apiUrl +=
+            '?nocomments=1&nofav=1' + ((extractNumber) ? '' : '&perpage=1');
+        makeLink(apiUrl, extractNumber);
     }
    
     // Execution.
