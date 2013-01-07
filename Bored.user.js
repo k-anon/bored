@@ -5,7 +5,11 @@
 // @include     http://www.derpiboo.ru/*
 // @include     http://derpibooru.org/*
 // @include     http://www.derpibooru.org/*
-// @version     0.2.5b
+// @include     https://derpiboo.ru/*
+// @include     https://www.derpiboo.ru/*
+// @include     https://derpibooru.org/*
+// @include     https://www.derpibooru.org/*
+// @version     0.2.6
 // @updateURL   http://userscripts.org/scripts/source/137452.meta.js
 // @description Booru On Rails Extension Demo: Various (Likely Temp) Tweaks for Derpiboo.ru
 // ==/UserScript==
@@ -23,7 +27,6 @@ function BOREDInit() {
         SHOW_REVERSE_SEARCH_LINKS: true,
         SHOW_ZOOM_CURSOR: true,
         ENABLE_MARKITUP: true,
-        SHOW_COMMENT_LINKS: true,
         ENABLE_FILE_UPLOAD_PREVIEW: true,
         NOSTALGIA_MODE: false,
         SAVE_DRAFTS: true,
@@ -42,7 +45,6 @@ function BOREDInit() {
                 SHOW_REVERSE_SEARCH_LINKS: 'Reverse Image Search Links'
             },
             'Comment Editing': {
-                SHOW_COMMENT_LINKS: 'Reply Links in Comments',
                 ENABLE_MARKITUP: 'Enable markItUp! WYSIWYM Editing',
                 SAVE_DRAFTS: 'Save comment draft on unload. (Recommended!)'
             }
@@ -484,51 +486,6 @@ function BOREDInit() {
         readFile();
     }
 
-    function commentLinking() {
-        function textileAppender($link, textileStr) {
-            $link.click(function () {
-                // I have to reselect this everytime because the AJAX is weird.
-                var $commentBody = $('textarea#comment_body');
-                $commentBody[0].focus();
-                $commentBody.insertAtCaret(textileStr);
-                return false;
-            });
-        }
-
-        function setupHeader($commentHeader) {
-            var name = $.trim($commentHeader.find('strong').text()),
-                id = $commentHeader.find('a').last().attr('href').split('#')[1],
-                $mentionLink = $('<a href="#">#Mention</a>'),
-                $replyLink = $('<a href="#">@Reply</a>');
-
-            textileAppender($mentionLink, ' "#' + name + '":' + 
-                            window.location.pathname + '#' + id + ' ');
-            textileAppender($replyLink, '"@' + name + '":' + 
-                            window.location.pathname + '#' + id + '\r\n\r\n');
-
-            $commentHeader.append($mentionLink).append(' ').append($replyLink);
-        }
-
-        function updateHeaders() {
-            var $commentHeaders = $('div.comment_info'),
-                $header,
-                i;
-         
-            for (i = 0; i < $commentHeaders.length; i += 1) {
-                $header = $($commentHeaders[i]);
-                if (!$header.data('commentLinkEnabled')) {
-                    setupHeader($header);
-                    $header.data('commentLinkEnabled', true);
-                }
-            }
-        }
-           
-        // Execute on AJAX load, too.
-        $('#new_comment').ajaxComplete(updateHeaders);
-        $('#comments').ajaxComplete(updateHeaders);
-        updateHeaders();
-    }
-
     function makeCommentImagesExpandable() {
         function bind($img) {
             if (!$img.data('expansionEnabled')) {
@@ -605,61 +562,6 @@ function BOREDInit() {
         BOREDConfig.setOpt('HIDE_COMMENT_IMAGES', hide);
     };
 
-    function SimpleTextileSubsetParser() {
-        this.tokenMaps = [
-            [/\[\*([^\n]+?)\*\]/g, '<strong>$1</strong>'],
-            [/\[_([^\n]+?)_\]/g, '<em>$1</em>'],
-            [/\[\+([^\n]+?)\+\]/g, '<ins>$1</ins>'],
-            [/\[\-([^\n]+?)\-\]/g, '<del>$1</del>'],
-            [/\[\^([^\n]+?)\^\]/g, '<super>$1</super>'],
-            [/\[~([^\n]+?)~\]/g, '<sub>$1</sub>'],
-            [/\[@([^\n]+?)@\]/g, '<code>$1</code>'],
-            [/(^|\W)\*([^\n]+?)\*(\W|$)/g, '$1<strong>$2</strong>$3'],
-            [/(^|\W)_([^\n]+?)_(\W|$)/g, '$1<em>$2</em>$3'],
-            [/(^|\W)\+([^\n]+?)\+(\W|$)/g, '$1<ins>$2</ins>$3'],
-            [/(^|\W)\-([^\n]+?)\-(\W|$)/g, '$1<del>$2</del>$3'],
-            [/(^|\W)\^([^\n]+?)\^(\W|$)/g, '$1<super>$2</super>$3'],
-            [/(^|\W)~([^\n]+?)~(\W|$)/g, '$1<sub>$2</sub>$3'],
-            [/(^|\W)@([^\n]+?)@(\W|$)/g, '$1<code>$2</code>$3'],
-            [/&gt;&gt;(\d+)/g, '<a href="/images/$1">&gt&gt$1</a>'],
-            [/(^|\W)\!(.+?)(?:\((.*)\))?\!(\W|$)/g,
-             '$1<img src="$2" title="$3" alt="$3" />$4'],
-            [/&quot;(.+?)(?:\((.*)\))?&quot;:([^\s<>]+)/,
-              '<a href="$3" title="$2">$1</a>'] 
-        ];
-    }
-
-    SimpleTextileSubsetParser.prototype.parse = function (str) {
-        // Clear out HTML-like entities as the RedCloth implementation does.
-        var outStr = str.replace(/&/g, '&amp;').replace(/<\w[^\n]*>/g, '')
-                        .replace(/>/g, '&gt;').replace(/</g, '&lt;')
-                        .replace(/"/g, '&quot;');
-        outStr = '<p>' + outStr + '</p>';
-
-        while (outStr !== str) {
-            str = outStr;
-            this.tokenMaps.forEach(function(v) {
-                outStr = outStr.replace(v[0], v[1]);
-            });
-        }
-
-        return outStr.replace(/\r?\n\r?\n/g, '</p><p>')
-                     .replace(/\r?\n/g, '<br />');
-    };
-
-    function SimpleTextileSubsetRenderer($markedUpTextarea) {
-        this.parser = new SimpleTextileSubsetParser();
-        this.previewWindow = $('<div class="textile_preview"></div>');
-        this.previewWindow.insertAfter($markedUpTextarea);
-    }
-
-    SimpleTextileSubsetRenderer.prototype.render = function (str) {
-        this.previewWindow.html(
-            '<div class="comment_body"><h5>Comment Preview</h5>' +
-            this.parser.parse(str) + '</div>'
-        );
-    };
-  
     function doMarkItUp() {
         // TODO: Rewrie this to take advantage of jQuery.
 
@@ -675,7 +577,6 @@ function BOREDInit() {
             subscriptImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAQAAAC1+jfqAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYxIDY0LjE0MDk0OSwgMjAxMC8xMi8wNy0xMDo1NzowMSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDpERkYyQjI1ODA4RDNFMTExQTVBRjgxRDBDNDA3RkJBRSIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo3NTcyMEQ1RkQzNEMxMUUxOTA2Q0FEQ0FBQTZGRjZEQyIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo3NTcyMEQ1RUQzNEMxMUUxOTA2Q0FEQ0FBQTZGRjZEQyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1LjEgV2luZG93cyI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjFCNjY1QTM0NEFEM0UxMTFBNkYxRURGM0E4QUREQTEwIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOkRGRjJCMjU4MDhEM0UxMTFBNUFGODFEMEM0MDdGQkFFIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+HVL3WgAAAMxJREFUKM9j+M+AHzIMGQVLHJZdWPx/xv+WgGyHoP82D4wdMEyYoTD5Q9v/AoXgCeYXDASwWlHfUPA/7ILFBX0BHG5IEwj9YPVf3wCnI70czP/r/1dfAOOvUKoQRFJgaWD8QNdB7YH8fykFEH9b6IwzgWfgCowM9B5oAg2XLZD4L3IAJNJ9N9ZF6520MViBXoLWB9UL8kCdYguE/gv855/gb2z2Tt1Y4h3UBA0DZQdZBwmg6wUd+B34gFBLUO6dyCr+cjwhKezClwZhAQCz7O+bUgO2KAAAAABJRU5ErkJggg==',
             superscriptImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAQAAAC1+jfqAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYxIDY0LjE0MDk0OSwgMjAxMC8xMi8wNy0xMDo1NzowMSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDpERkYyQjI1ODA4RDNFMTExQTVBRjgxRDBDNDA3RkJBRSIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo2MzYyMzhEQkQzNEMxMUUxQkQyRkMzMTJFQzY1M0MwMCIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo2MzYyMzhEQUQzNEMxMUUxQkQyRkMzMTJFQzY1M0MwMCIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1LjEgV2luZG93cyI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjVCNDlCN0Q4MEJEM0UxMTFBNUFGODFEMEM0MDdGQkFFIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOkRGRjJCMjU4MDhEM0UxMTFBNUFGODFEMEM0MDdGQkFFIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+GdwPmAAAAMxJREFUKM9j+M+AHzKQqWD1u3n/U9P0/yuX41DQaJz4Ti9NuhyPFdrvJM/gdYPUKoE0uIIlDssuLP4/439LQLZD0H+bB8YOioLCZ1AcOUNh8oe2/wUKwRPMLxgIaM6UeidgjOaL+oaC/2EXLC7oC+DwZppA6Aer//oGOMPBy8H8v/5/9QU4FFgaGD/QdVB7IP9fSgGLAiMDvQeaQMNlCyT+ixzAUKCXoPVB9YI8UKfYAqH/Av/5J6Ap0DBQdpB1kAC6XtCB34EPCEmKTQCZjPE4N8a4DgAAAABJRU5ErkJggg==',
             insertImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYxIDY0LjE0MDk0OSwgMjAxMC8xMi8wNy0xMDo1NzowMSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo1ODQ5QjdEODBCRDNFMTExQTVBRjgxRDBDNDA3RkJBRSIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpERDFFOThDM0QzNEIxMUUxQjgxNkMyNTE3NDU5NkE1QiIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpERDFFOThDMkQzNEIxMUUxQjgxNkMyNTE3NDU5NkE1QiIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1LjEgV2luZG93cyI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjFBNjY1QTM0NEFEM0UxMTFBNkYxRURGM0E4QUREQTEwIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjU4NDlCN0Q4MEJEM0UxMTFBNUFGODFEMEM0MDdGQkFFIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+iqTydQAAATFJREFUeNrMUz1qhGAQHUN6sREvEdjcQDvLHGHrNEntKdKlzQGsbfUIGmyVBQvx/xf8RTMjCEEXdrNJkQFR5pv3vvdmRmaeZ/hNMP+LQNM0EV9i3/dQ1zXkeQ5ZlhlJkpyCIDj6vg9VVcE4jh+WZZ3OKlBV9a3ruhcqTNNUUhTFoLwkSWJZljqePdq2ba71d1tJeGuOt0IURbCCKXRdN9q2he9givstAclsmgZQ9s4vEWxjR+B5HqBUCMPwNgLXdRcC9LorHobhMkEcx0shTWIb2H1rm9s1Ef2b1AN6BEE4rHmO4w7TNOUXCdCnSV5JASoR1zyCX3HkxlWbyPP8Ey0Lglg8X2WbRVEcf7TKLMsuFhBoXrXKDMN8yrL8QN+O4yxjQyVwZleeEff+Jz/TlwADADkE3v7LFnqxAAAAAElFTkSuQmCC',
-            previewImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAGrSURBVDjLvZPZLkNhFIV75zjvYm7VGFNCqoZUJ+roKUUpjRuqp61Wq0NKDMelGGqOxBSUIBKXWtWGZxAvobr8lWjChRgSF//dv9be+9trCwAI/vIE/26gXmviW5bqnb8yUK028qZjPfoPWEj4Ku5HBspgAz941IXZeze8N1bottSo8BTZviVWrEh546EO03EXpuJOdG63otJbjBKHkEp/Ml6yNYYzpuezWL4s5VMtT8acCMQcb5XL3eJE8VgBlR7BeMGW9Z4yT9y1CeyucuhdTGDxfftaBO7G4L+zg91UocxVmCiy51NpiP3n2treUPujL8xhOjYOzZYsQWANyRYlU4Y9Br6oHd5bDh0bCpSOixJiWx71YY09J5pM/WEbzFcDmHvwwBu2wnikg+lEj4mwBe5bC5h1OUqcwpdC60dxegRmR06TyjCF9G9z+qM2uCJmuMJmaNZaUrCSIi6X+jJIBBYtW5Cge7cd7sgoHDfDaAvKQGAlRZYc6ltJlMxX03UzlaRlBdQrzSCwksLRbOpHUSb7pcsnxCCwngvM2Rm/ugUCi84fycr4l2t8Bb6iqTxSCgNIAAAAAElFTkSuQmCC',
             draftImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYxIDY0LjE0MDk0OSwgMjAxMC8xMi8wNy0xMDo1NzowMSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6OUJEQUVDQkUzMzdGMTFFMkI0MEREODc1RkU2Q0IyNUEiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6OUJEQUVDQkQzMzdGMTFFMkI0MEREODc1RkU2Q0IyNUEiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNS4xIFdpbmRvd3MiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmRpZDpDMTYxRTVFOTdFMzNFMjExODcxRTk4MDIxODdGOEIzNSIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpDMTYxRTVFOTdFMzNFMjExODcxRTk4MDIxODdGOEIzNSIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PrJskssAAAGYUExURQQEBPv7+wsLCwwMDAMDA+zs7A0NDQUFBQYGBra2tikpKRQUFPyxG6qqqiMjI2RkZPDw8FxcXCoqKhoaGpqamqyikd3d3aOjo6ioqDEmE8XFxcbGxunp6aurq9bW1kNDQ0dHR+jo6CYmJv77/v3z/fb29v/9//y3PvnKXdDQ0OWeGfbS+f7dnF1aVjs0KP75/v31/hIPDP7Vfvy2O/nHKFtbW/729ayJMXR0dK1fEeDa4f7LKfn5+bSysP7HJKmpqf2/IBsbG8pvFPnBIjo6OhgQCAoKCgcHB3RBDtbSz9LS0hUMA/XJ+BERERgYGP3EI/28HyshEfSsK9nZ2f///z4+PvPz8/arG8xyFFBAIv22Hc7Ozvy1Nr29vWs9D8nJyf3w2P24K8e/szk5OWdaRfbfs/vIQJOTk/Hx8f/36emhMvXI+KSkpOHh4e7W7n19fe67I9/f3/KrI/nn7fPD9/fW+fbt3gEBAQYDAbq6ut7e3tra2urS7MB5FWpqakMkB9bV1Jubmw4ODr15GyAgIP3FIwAAAP///42JeAQAAACIdFJOU////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wAYt9YPAAAA10lEQVQYGQXBA2IDAQBFwb8bO6lt225T27Zt29h37c4IAAAAQJD//DJzFgagYBaR5ntwB2PmDuahqvQO4bAsyy67O3Ol4Xz0JE8YY987cYkh30DFfsvrba4I23qjBjwtXf5t3VQihs2sJAP26jqvNwFRbIukG5S1TpbsAogNW33AqOlYnk4OAgiPGQkUTfhX4/tjAcSpWd7Y46+9D7m8AOKr7+dtofDI06V3ANG+3r14vN00rt8MADH00Tw45ZTLmwqA+KweeZQz58IBAKItIWXtKvsQAOAfF8xWDojKVBgAAAAASUVORK5CYII=',
             header = document.getElementsByTagName('head')[0],
             cssInlineDom = document.createElement('style'),
@@ -697,7 +598,6 @@ function BOREDInit() {
             var settings = {
                 nameSpace: 'bored',
                 resizeHandle: true,
-                previewAutoRefresh: true,
                 onShiftEnter: {
                     keepDefault: false,
                     replaceWith: '\n\n'
@@ -725,23 +625,18 @@ function BOREDInit() {
                     openWith:'(!([~|!|~)!)', multiline:true},
                    {name:'Code', openWith:'@', closeWith:'@', multiline: true},
                    {separator:'---------------'},
-                   {name:'Preview', call:'preview', className:'prevButton'},
                    {name:'Save Draft', call:'options.saveDraft',
                     className: 'draftButton'}
                 ]
             };
             
             function markCommentBodyUp() {
-                $('textarea').each(function () {
+                $('textarea:not([id $= "tag_list"])').each(function () {
                     var $this = $(this),
                         stsr,
                         el;
 
                     if (!$this.data('wysiwiymEnabled')) {
-                        stsr = new SimpleTextileSubsetRenderer($this); 
-                        settings.previewHandler = function (str) {
-                            stsr.render(str);
-                        };
                         if (this.id === 'comment_body' || this.id === 'body') {
                             el = this;
 
@@ -919,15 +814,6 @@ function BOREDInit() {
                 '}' +
                 '.bored .draftButton a {' +
                 '   background-image:url(' + draftImg + ');' +
-                '}' +
-                '.bored .prevButton a {' +
-                '   background-image:url(' + previewImg + ');' +
-                '}' +
-                '.textile_preview {' +
-                '   margin:5px 0 0 180px;' +
-                '}' +
-                '.textile_preview h5 {' +
-                '   margin-top: 5px;' +
                 '}';
 
             header.appendChild(cssInlineDom);
@@ -1009,9 +895,6 @@ function BOREDInit() {
         if ($('#comments').length) {
             new CommentImagesToggler();
 
-            if (BOREDConfig.SHOW_COMMENT_LINKS) {
-                commentLinking();
-            }
             if (!BOREDConfig.HIDE_COMMENT_IMAGES &&
                 BOREDConfig.AUTO_EXPAND_COMMENT_IMAGES) {
                 makeCommentImagesExpandable();
