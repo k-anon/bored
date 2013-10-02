@@ -16,7 +16,7 @@
 
 function BOREDInit() {
     'use strict';
-
+    
     // Options.
     // TODO: I think code will end up cleaner if I make this a function and tie
     // it directly to respective feature functions.
@@ -31,6 +31,8 @@ function BOREDInit() {
         NOSTALGIA_MODE: false,
         SAVE_DRAFTS: true,
         ENABLE_RANDOM_BUTTON: true,
+        SPOILER_ALL_DOWNVOTED: false,
+        SPOILER_SELECTED_IMAGES: false,
 
         PANEL: {
             'Layout': {
@@ -47,8 +49,12 @@ function BOREDInit() {
             'Comment Editing': {
                 ENABLE_MARKITUP: 'Enable markItUp! WYSIWYM Editing',
                 SAVE_DRAFTS: 'Save comment draft on unload. (Recommended!)'
+            },
+            'Advanced Image Hiding': {
+                SPOILER_ALL_DOWNVOTED: 'Spoiler all downvoted images.',
+                SPOILER_SELECTED_IMAGES: 'Hide images.'
             }
-        }
+        },
     }, menusEnabled = false,
         $imageInput,
         // Odd. I thought I long patched this in an earlier BORED iteration.
@@ -138,6 +144,8 @@ function BOREDInit() {
                 widget.writeSetting();
             });
             BOREDConfig.saveSettings();
+            window.location.reload();
+            return false;
         });
 
         $panelDiv.on('reset', function () {
@@ -245,7 +253,8 @@ function BOREDInit() {
                         endPos = this.selectionEnd,
                         scrollTop = this.scrollTop;
                     this.value = this.value.substring(0, startPos) + myValue +
-                                 this.value.substring(endPos, this.value.length);
+                                 this.value.substring(endPos,
+                                 	              this.value.length);
                     this.focus();
                     this.selectionStart = startPos + myValue.length;
                     this.selectionEnd = startPos + myValue.length;
@@ -310,7 +319,7 @@ function BOREDInit() {
         if (!draft) return;
         try {
             draft = JSON.parse(draft);
-        } catch(e) { // Something wrong has happened
+        } catch (e) { // Something wrong has happened
             localStorage.removeItem("BOREDDraft_" + draftId);
             return;
         }
@@ -358,8 +367,11 @@ function BOREDInit() {
             $comments.ajaxComplete(function(evt, xhr, opts) {
                 // If the request was a POST, then a comment was posted.
                 // saveDraft just trashes the draft, then.
-                if (opts.type === "POST") saveDraft(draftId, txtSel);
-                else loadDraft(draftId, txtSel);
+                if (opts.type === "POST") {
+                    saveDraft(draftId, txtSel);
+                } else {
+                    loadDraft(draftId, txtSel);
+                }
             });
             loadDraft(draftId, txtSel);
         } else if (draftId
@@ -859,7 +871,7 @@ function BOREDInit() {
                 $('.searchbox').before(
                     '<div class="metasection">' + 
                     '    <a href="/images/' + imgNum +
-                         '"title="FUN!" style="background-color: pink">' +
+                         '" title="FUN!" style="background-color: pink">' +
                     '        Random Img.' +
                     '    </a>' +
                     '</div>'
@@ -885,9 +897,156 @@ function BOREDInit() {
             '?nocomments=1&nofav=1' + ((extractNumber) ? '' : '&perpage=1');
         makeLink(apiUrl, extractNumber);
     }
+    
+    function hideImagePreview() {
+        $('#image_target').css('display', 'none').after(
+            '<div class="image-warning" data-image-hidden="spoiler" ' +
+            'id="spoiler_notification"><strong><a href="#" ' +
+            'id="show-img">' +
+            'Image spoilered by default in your preferences - click ' +
+            'to show the image anyway</a></strong>' +
+            '<p>This image is hidden by B.O.R.E.D. To un-spoiler ' +
+            'content with this tag, remove your vote or disable ' +
+            'auto-hiding. Alternatively, click the link above to ' +
+            'reveal the image just this once.</p></div>'
+        );
+        $('#show-img').click(function () {
+            $('#image_target').css('display', '');
+            $(this).closest('div.image-warning').remove();
+               return false;
+        });
+    }
+    
+    function hideThumb($thumb) {
+        $thumb.css('display', 'none').after(
+            '<span>\u2205</span>'
+        ).parent().css({
+            color: 'white',
+            'font-size': '50px',
+            'font-weight': 'bold'
+        }).parent().css(
+            'background', '#ccc'
+        );
+    }
+
+    function doImageAutoHide() {
+        var $imageList = $('#imagelist_container');
+
+    	if ($imageList.length) {
+            hideThumb($('.voted_down').closest('.image').find('img'));
+        } else {
+            if ($('#content').find('.voted_down').length &&
+            	    !$('#image_warning').length) {
+                hideImagePreview();
+            }
+        }
+    }
+    
+    function doHiderLinks() {
+        var inImageList = $('#imagelist_container').length,
+            hiddenImages = (localStorage.hiddenImages || '').split(','),
+            $div;
+
+        // Hide all images stored in hiddenImages array.
+        if (inImageList) {
+           $('div.image[data-image-id]').each(function () {
+               var $div = $(this),
+                   imageId = $div.attr('data-image-id');
+               if (hiddenImages.indexOf(imageId) !== -1) {
+                   hideThumb($div.find('img'));
+                   $div.find('.vote_down_link,.voted_down').after(
+                       '\u2022 <a href="#" class="unhide-img-link">Hidden</a>'
+                   );
+               } else {
+                   $div.find('.vote_down_link,.voted_down').after(
+                       '\u2022 <a href="#" class="hide-img-link">Hide</a>'
+                   );
+               }
+           });
+        } else {
+            $div = $('#content div[data-image-id]');
+            if ($div.length && hiddenImages.indexOf(
+                    $div.attr('data-image-id')) !== -1) {
+                hideImagePreview();
+                $('div[id^="image_meta"]').find(
+                    'a[id^="vote_down"]'
+                ).after(
+                    '\n<a href="#" class="unhide-img-link">Hidden</a>'
+                );
+            } else {
+                $('div[id^="image_meta"]').find(
+                    'a[id^="vote_down"]'
+                ).after(
+                    '\n<a href="#" class="hide-img-link">Hide</a>'
+                );
+            }
+        }
+
+        $(document).on('click', 'a.hide-img-link', function () {
+        	// Image hiding.
+            // Store the image ID.
+            var $btn = $(this),
+                idNumber;
+            if (inImageList) {
+                idNumber = $btn.closest('div[data-image-id]')
+                               .attr('data-image-id');
+            } else {
+                idNumber = $('#content').find('div[data-image-id]')
+                                        .attr('data-image-id');
+            }
+            hiddenImages.push(idNumber);
+            localStorage.hiddenImages = hiddenImages;
+            if (inImageList) {
+                hideThumb($btn.closest('.image').find('img'));
+            } else {
+                hideImagePreview();
+            }
+            
+            $btn.removeClass('hide-img-link').addClass('unhide-img-link')
+                .text('Hidden');
+
+            return false;
+        }).on('click', 'a.unhide-img-link', function () {
+            // Image unhiding.
+            var $btn = $(this),
+                idNumber = $btn.closest('[data-image-id]')
+                               .attr('data-image-id'),
+                $image;
+
+            // Remove image number from hiddenImages array.
+            hiddenImages.splice(
+            	hiddenImages.indexOf(idNumber), 1
+            );
+            localStorage.hiddenImages = hiddenImages;
+
+            // Display the image.
+            if (inImageList) {
+                $image = $btn.closest('.image').find('img').css('display', '');
+                $image.parent().parent().css('background', '');
+                $image.next().remove();
+            } else {
+                $('#image_target').css('display', '');
+                $('div.image-warning').remove();
+            }
+
+            $btn.removeClass('unhide-img-link').addClass('hide-img-link')
+                .text('Hide');
+
+            return false;
+        });
+    }
    
     // Execution.
     BOREDConfig.loadSettings();
+    
+    if (BOREDConfig.SPOILER_SELECTED_IMAGES) {
+        doHiderLinks();
+    }
+
+    if (BOREDConfig.SPOILER_ALL_DOWNVOTED) {
+        doImageAutoHide();
+    }
+
     BOREDConfig.makePanel();
 
     if (BOREDConfig.SHOW_ZOOM_CURSOR) {
@@ -898,7 +1057,7 @@ function BOREDInit() {
         moveWatched();
     }
 
-    if (BOREDConfig.SHOW_REVERSE_SEARCH_LINKS && $('div#image_target').length) {
+    if (BOREDConfig.SHOW_REVERSE_SEARCH_LINKS && $('#image_target').length) {
         relImages();
         $(document).ajaxComplete(relImages);
     }
@@ -908,7 +1067,7 @@ function BOREDInit() {
     }
 
     if (BOREDConfig.ENABLE_FILE_UPLOAD_PREVIEW) {
-        $imageInput = $('input#image_image');
+        $imageInput = $('#image_image');
         if ($imageInput.length) {
             imagePreview($imageInput);
         }
@@ -936,7 +1095,7 @@ function BOREDInit() {
     // fun to do and actually looks good with the format. Only the link is
     // changed. I should add the sidebar thing later.
     if (BOREDConfig.NOSTALGIA_MODE) {
-        $('div#header > a:first-child').text('Ponibooru')
+        $('#header > a:first-child').text('Ponibooru')
             .css({
                 fontWeight: 'bold',
                 color: '#006FFA'
@@ -945,7 +1104,7 @@ function BOREDInit() {
             }, function () {
                 $(this).css('color', '#006FFA');
             });
-    }   
+    }
 }
 
 // if __name__ == '__main__':
@@ -955,5 +1114,5 @@ function BOREDInit() {
     var script = document.createElement('script');
 
     script.textContent = '(' + BOREDInit.toString() + ')();';
-    document.body.appendChild(script);
+    document.body.firstChild.insertBefore(script);
 }());
