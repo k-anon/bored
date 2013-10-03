@@ -364,7 +364,7 @@ function BOREDInit() {
                     }
                 }
             });
-            $comments.ajaxComplete(function(evt, xhr, opts) {
+            $(document).ajaxComplete(function(evt, xhr, opts) {
                 // If the request was a POST, then a comment was posted.
                 // saveDraft just trashes the draft, then.
                 if (opts.type === "POST") {
@@ -515,8 +515,7 @@ function BOREDInit() {
             });
         }
 
-        $('#new_comment').ajaxComplete(execute);
-        $('#comments').ajaxComplete(execute);
+        $(document).ajaxComplete(execute);
         execute();
     }
 
@@ -527,10 +526,11 @@ function BOREDInit() {
         function execute() {
             var $ins = $('div.metabar.metabar_redux').first();
             if (!$ins.data('executed')) {
-                $ins.append('<form action="#" style="float:right">' + 
-                            '<label for="bored-disable-images">No ' +
-                            'Images</label><input type="checkbox" ' +
-                            'id="bored-disable-images" /></form>');
+                $ins.css('margin-bottom', 0);
+                $ins.after('<form action="#" style="margin-left: 450px;">' + 
+                           '<label for="bored-disable-images">No ' +
+                           'Images</label><input type="checkbox" ' +
+                           'id="bored-disable-images" /></form>');
                 $('#bored-disable-images').change(function () {
                     me.toggle($(this).is(':checked'));
                 }).prop('checked', BOREDConfig.HIDE_COMMENT_IMAGES);
@@ -539,8 +539,7 @@ function BOREDInit() {
             }
         }
 
-        $('#new_comment').ajaxComplete(execute);
-        $('#comments').ajaxComplete(execute);
+        $(document).ajaxComplete(execute);
         execute();
 
         if (BOREDConfig.HIDE_COMMENT_IMAGES) {
@@ -558,14 +557,12 @@ function BOREDInit() {
     CommentImagesToggler.prototype.toggle = function (hide) {       
         if (hide) {
             if (!this.eventsAttached) {
-                $('#new_comment').on('ajaxComplete', this.hideImages);
-                $('#comments').on('ajaxComplete', this.hideImages);
+                $(document).on('ajaxComplete', this.hideImages);
             }
             this.eventsAttached = true;
             this.hideImages();
         } else {
-            $('#new_comment').off('ajaxComplete', this.hideImages);
-            $('#comments').off('ajaxComplete', this.hideImages);
+            $(document).off('ajaxComplete', this.hideImages);
             this.eventsAttached = false;
             $('img', 'div[id^="image_comments"]').css('display', '');
         }
@@ -671,7 +668,7 @@ function BOREDInit() {
 
             // AJAX binding.
             markCommentBodyUp();
-            $('#comments').ajaxComplete(markCommentBodyUp);
+            $(document).ajaxComplete(markCommentBodyUp);
         }
 
         if (document.getElementsByTagName('textarea').length) {
