@@ -1,6 +1,7 @@
 // ==UserScript==
 // @name        Bored
 // @namespace   http://userscripts.org/O_Lawd
+// @grant       none
 // @include     http://derpiboo.ru/*
 // @include     http://www.derpiboo.ru/*
 // @include     http://derpibooru.org/*
@@ -9,7 +10,7 @@
 // @include     https://www.derpiboo.ru/*
 // @include     https://derpibooru.org/*
 // @include     https://www.derpibooru.org/*
-// @version     0.2.8
+// @version     0.2.8a
 // @updateURL   http://userscripts.org/scripts/source/137452.meta.js
 // @description Booru On Rails Extension Demo: Various (Likely Temp) Tweaks for Derpiboo.ru
 // ==/UserScript==
@@ -1111,5 +1112,5 @@ function BOREDInit() {
     var script = document.createElement('script');
 
     script.textContent = '(' + BOREDInit.toString() + ')();';
-    document.body.firstChild.insertBefore(script);
+    document.getElementsByTagName('head')[0].appendChild(script);
 }());
