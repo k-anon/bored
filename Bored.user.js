@@ -9,7 +9,7 @@
 // @include     https://www.derpiboo.ru/*
 // @include     https://derpibooru.org/*
 // @include     https://www.derpibooru.org/*
-// @version     0.2.7
+// @version     0.2.8
 // @updateURL   http://userscripts.org/scripts/source/137452.meta.js
 // @description Booru On Rails Extension Demo: Various (Likely Temp) Tweaks for Derpiboo.ru
 // ==/UserScript==
@@ -288,7 +288,7 @@ function BOREDInit() {
 
     // Related images link. I should probably make this a menu for TinEye, too.
     function relImages() {
-        var $metabar = $('div.metabar'),
+        var $metabar = $('div.metabar').first(),
             $insertPoint,
             url,
             $header,
