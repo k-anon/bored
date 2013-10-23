@@ -10,7 +10,7 @@
 // @include     https://www.derpiboo.ru/*
 // @include     https://derpibooru.org/*
 // @include     https://www.derpibooru.org/*
-// @version     0.2.8a
+// @version     0.2.8b
 // @updateURL   http://userscripts.org/scripts/source/137452.meta.js
 // @description Booru On Rails Extension Demo: Various (Likely Temp) Tweaks for Derpiboo.ru
 // ==/UserScript==
@@ -302,6 +302,10 @@ function BOREDInit() {
             menu = new SlideDownMenu($header, '12em');
         
             $insertPoint.prepend(menu.top);
+            
+            if (url.indexOf('http:') !== 0 && url.indexOf('https:') !== 0) {
+                url = window.location.protocol + url;
+            }
         
             menu.body.append(
                 '<a style="display:block" href="https://www.google.com/' +
@@ -370,8 +374,6 @@ function BOREDInit() {
                 // saveDraft just trashes the draft, then.
                 if (opts.type === "POST") {
                     saveDraft(draftId, txtSel);
-                } else {
-                    loadDraft(draftId, txtSel);
                 }
             });
             loadDraft(draftId, txtSel);
