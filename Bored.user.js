@@ -10,7 +10,11 @@
 // @include     https://www.derpiboo.ru/*
 // @include     https://derpibooru.org/*
 // @include     https://www.derpibooru.org/*
-// @version     0.2.8b
+// @include     http://www.trixiebooru.org/*
+// @include     https://www.trixiebooru.org/*
+// @include     http://trixiebooru.org/*
+// @include     https://trixiebooru.org/*
+// @version     0.2.8c
 // @updateURL   http://userscripts.org/scripts/source/137452.meta.js
 // @description Booru On Rails Extension Demo: Various (Likely Temp) Tweaks for Derpiboo.ru
 // ==/UserScript==
@@ -209,12 +213,18 @@ function BOREDInit() {
         });
     };
 
+    // Gets the current spoiler setting (click, static...).
+    function getSpoilerType() {
+        return $('#spoiler-quick-menu').val();
+    }
+
     // Slide-down menu functionality for the metabar.
     function SlideDownMenu($element, minWidth) {
         var $m = $('<div class="slidedownmenu" ' +
-                   'style="display:inline;vertical-align:top;">' +
+                   'style="display:inline;vertical-align:top;' +
+                   'margin-right:5px;">' +
                    '<div class="slidedownmenu-inner" ' +
-                   'style="position:absolute;display:none;' +
+                   'style="position:absolute;display:none;margin-top:-1px;' +
                    'min-width:' + minWidth + '"></div></div>'),
             $menu = $('div.slidedownmenu-inner', $m);
 
@@ -235,41 +245,8 @@ function BOREDInit() {
         this.top = $m;
     }
 
-    // Utility function for inserting at caret for selected <textarea>s.
-    // It's almost 4AM, and I don't feel like messing with DOM (or IE), so
-    // this snippet is from
-    // http://stackoverflow.com/questions/946534/insert-text-into-textarea-with-jquery
-    // Thanks go to Aniebiet Udoh.
-    $.fn.extend({
-        insertAtCaret: function(myValue) {
-            return this.each(function(i) {
-                if (document.selection) {
-                    //For browsers like Internet Explorer
-                    this.focus();
-                    document.selection.createRange().text = myValue;
-                    this.focus();
-                } else if (this.selectionStart || this.selectionStart === 0) {
-                    //For browsers like Firefox and Webkit based
-                    var startPos = this.selectionStart,
-                        endPos = this.selectionEnd,
-                        scrollTop = this.scrollTop;
-                    this.value = this.value.substring(0, startPos) + myValue +
-                                 this.value.substring(endPos,
-                                 	              this.value.length);
-                    this.focus();
-                    this.selectionStart = startPos + myValue.length;
-                    this.selectionEnd = startPos + myValue.length;
-                    this.scrollTop = scrollTop;
-                } else {
-                    this.value += myValue;
-                    this.focus();
-                }
-            });
-        }
-    });
-
     function zoomCursors() {
-        $('div#image_target').css('cursor', zin).click(function () {
+        $('#image_target').css('cursor', zin).click(function () {
             var $this = $(this);
             if ($this.data('expanded')) {
                 $this.data('expanded', false);
@@ -296,8 +273,8 @@ function BOREDInit() {
             menu;
 
         if (!$metabar.data('attachedRel')) {
-            $insertPoint = $metabar.find('div.metasection:nth-last-child(2)');
-            url =  $insertPoint.find('a:first-child').attr('href');
+            $insertPoint = $metabar.find('div.metasection:last-child');
+            url =  $insertPoint.children('a:first-child').attr('href');
             $header = $('<a href="#">Rev. Img. Search \u25BC</a>');
             menu = new SlideDownMenu($header, '12em');
         
@@ -899,53 +876,98 @@ function BOREDInit() {
     }
     
     function hideImagePreview() {
-        $('#image_target').css('display', 'none').after(
-            '<div class="image-warning" data-image-hidden="spoiler" ' +
-            'id="spoiler_notification"><strong><a href="#" ' +
-            'id="show-img">' +
-            'Image spoilered by default in your preferences - click ' +
+        var $imageShowContainer = $('div.image_show_container');
+        $imageShowContainer.css('display', 'none').after(
+            '<div id="image-warning" data-image-hidden="spoiler">' +
+            '<strong><a href="#" id="show-img">' +
+            'Image spoilered by B.O.R.E.D. - click ' +
             'to show the image anyway</a></strong>' +
-            '<p>This image is hidden by B.O.R.E.D. To un-spoiler ' +
-            'content with this tag, remove your vote or disable ' +
+            '<p>This image is hidden by B.O.R.E.D. To un-spoiler, ' +
+            'remove your downvote or hiding selection, or disable ' +
             'auto-hiding. Alternatively, click the link above to ' +
             'reveal the image just this once.</p></div>'
         );
         $('#show-img').click(function () {
-            $('#image_target').css('display', '');
+            $('div.image_show_container').css('display', '');
             $(this).closest('div.image-warning').remove();
                return false;
         });
     }
-    
-    function hideThumb($thumb) {
-        $thumb.css('display', 'none').after(
-            '<span>\u2205</span>'
-        ).parent().css({
-            color: 'white',
-            'font-size': '50px',
-            'font-weight': 'bold'
-        }).parent().css(
-            'background', '#ccc'
-        );
-    }
 
     function doImageAutoHide() {
+        // Distinguish image lists.
         var $imageList = $('#imagelist_container');
 
-    	if ($imageList.length) {
-            hideThumb($('.voted_down').closest('.image').find('img'));
-        } else {
-            if ($('#content').find('.voted_down').length &&
-            	    !$('#image_warning').length) {
+        $(document).ajaxComplete(function () {
+            if ($imageList.length) {
+                hideThumb($('.voted_down').closest('.image').find('.thumb'));
+            } else if ($('#content .voted_down').length &&
+                       !$('#image-warning').length) {
                 hideImagePreview();
             }
+        });
+    }
+
+    function hideThumbElement($thumb) {
+        if (!$thumb.hasClass('spoilered')) {
+            $thumb.css('background', '#ccc').addClass('spoilered');
+            $thumb.children('a').css({
+                color: 'white',
+                'font-size': '50px',
+                'font-weight': 'bold'
+            }).children('img').css('display', 'none').before(
+                '<span>\u2205</span>'
+            );
         }
     }
-    
+
+    function reshowThumbElement($thumb) {
+        $thumb.removeAttr('style').removeClass('spoilered');
+        $thumb.children('a').removeAttr('style')
+                        .children('img').removeAttr('style')
+                        .prev('span').remove();
+    }
+
+    function hideThumb($thumb) {
+        var spoilerType = getSpoilerType();
+
+        hideThumbElement($thumb);
+
+        if (spoilerType === 'click') {
+            $thumb.each(function () {
+                var $thumbEl = $(this);
+                $thumbEl.children('a').click(function (e) {
+                    if (e.which === 1 &&
+                            $thumbEl.hasClass('spoilered')) {
+                        reshowThumbElement($thumbEl);
+                      return false;
+                    }
+                    return true;
+                }).mouseleave(function () {
+                    if (!$thumbEl.hasClass('spoilered')) {
+                        hideThumbElement($thumbEl);
+                    }
+                });
+            });
+        } else if (spoilerType === 'hover') {
+            $thumb.each(function () {
+                var $thumbEl = $(this);
+                $thumbEl.children('a').hover(function () {
+                    reshowThumbElement($thumbEl);
+                }, function () {
+                    if (!$thumbEl.hasClass('spoilered')) {
+                        hideThumbElement($thumbEl);
+                    }
+                });
+            });
+        }
+    }
+
     function doHiderLinks() {
         var inImageList = $('#imagelist_container').length,
             hiddenImages = (localStorage.hiddenImages || '').split(','),
-            $div;
+            $div,
+            $dataIdThingee;
 
         // Hide all images stored in hiddenImages array.
         if (inImageList) {
@@ -953,29 +975,31 @@ function BOREDInit() {
                var $div = $(this),
                    imageId = $div.attr('data-image-id');
                if (hiddenImages.indexOf(imageId) !== -1) {
-                   hideThumb($div.find('img'));
+                   hideThumb($div.find('.thumb'));
                    $div.find('.vote_down_link,.voted_down').after(
                        '\u2022 <a href="#" class="unhide-img-link">Hidden</a>'
                    );
                } else {
-                   $div.find('.vote_down_link,.voted_down').after(
+                      $div.find('.vote_down_link,.voted_down').after(
                        '\u2022 <a href="#" class="hide-img-link">Hide</a>'
                    );
                }
            });
         } else {
-            $div = $('#content div[data-image-id]');
-            if ($div.length && hiddenImages.indexOf(
-                    $div.attr('data-image-id')) !== -1) {
+            $div = $('#image_target');
+            $dataIdThingee = $('[data-image-id]');
+            if (!!$div.length && !!$dataIdThingee.length &&
+                    hiddenImages.indexOf(
+                    $dataIdThingee.attr('data-image-id')) !== -1) {
                 hideImagePreview();
                 $('div[id^="image_meta"]').find(
-                    'a[id^="vote_down"]'
+                    'a.vote_down_link'
                 ).after(
                     '\n<a href="#" class="unhide-img-link">Hidden</a>'
                 );
             } else {
                 $('div[id^="image_meta"]').find(
-                    'a[id^="vote_down"]'
+                    'a.vote_down_link'
                 ).after(
                     '\n<a href="#" class="hide-img-link">Hide</a>'
                 );
@@ -983,7 +1007,7 @@ function BOREDInit() {
         }
 
         $(document).on('click', 'a.hide-img-link', function () {
-        	// Image hiding.
+            // Image hiding.
             // Store the image ID.
             var $btn = $(this),
                 idNumber;
@@ -991,17 +1015,16 @@ function BOREDInit() {
                 idNumber = $btn.closest('div[data-image-id]')
                                .attr('data-image-id');
             } else {
-                idNumber = $('#content').find('div[data-image-id]')
-                                        .attr('data-image-id');
+                idNumber = $('#content [data-image-id]').attr('data-image-id');
             }
             hiddenImages.push(idNumber);
             localStorage.hiddenImages = hiddenImages;
             if (inImageList) {
-                hideThumb($btn.closest('.image').find('img'));
-            } else {
+                hideThumb($btn.closest('.image').find('.thumb'));
+            } else if (!$('#image-warning').length) {
                 hideImagePreview();
             }
-            
+
             $btn.removeClass('hide-img-link').addClass('unhide-img-link')
                 .text('Hidden');
 
@@ -1010,23 +1033,20 @@ function BOREDInit() {
             // Image unhiding.
             var $btn = $(this),
                 idNumber = $btn.closest('[data-image-id]')
-                               .attr('data-image-id'),
-                $image;
+                               .attr('data-image-id');
 
             // Remove image number from hiddenImages array.
             hiddenImages.splice(
-            	hiddenImages.indexOf(idNumber), 1
+                hiddenImages.indexOf(idNumber), 1
             );
             localStorage.hiddenImages = hiddenImages;
 
             // Display the image.
             if (inImageList) {
-                $image = $btn.closest('.image').find('img').css('display', '');
-                $image.parent().parent().css('background', '');
-                $image.next().remove();
+                reshowThumbElement($btn.closest('.image').find('.thumb'));
             } else {
-                $('#image_target').css('display', '');
-                $('div.image-warning').remove();
+                $('div.image_show_container').removeAttr('style');
+                $('#image-warning').remove();
             }
 
             $btn.removeClass('unhide-img-link').addClass('hide-img-link')
