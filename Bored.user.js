@@ -1037,16 +1037,18 @@ function BOREDInit() {
     function disableAnimation() {
         // Replaces animated Cheerilee spoiler with non-animated one
         $(document).ready(function(){
+            var cheerilees= [];
             $('img[src="//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8wM1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMjUweDI1MCJdXQ.gif"]').each(function(){
                 $(this).attr('src', 'https://derpicdn.net/img/view/2014/9/6/716635.png');
+                cheerilees.push($(this));
             });
-            $('img').mouseleave(function(){
-                window.setTimeout(function(){
-                    $('img[src="//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8wM1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMjUweDI1MCJdXQ.gif"]').each(function(){
-                        $(this).attr('src', 'https://derpicdn.net/img/view/2014/9/6/716635.png');
-                    });
-                }, 500);
-            });
+            setInterval(function(){
+                for(var i=0;i<cheerilees.length;i++){
+                    if(cheerilees[i].attr('src')=='//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8wM1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMjUweDI1MCJdXQ.gif'){
+                        cheerilees[i].attr('src', 'https://derpicdn.net/img/view/2014/9/6/716635.png');
+                    }
+                }
+            }, 100);
         });
     }
    
