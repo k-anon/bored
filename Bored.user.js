@@ -38,6 +38,7 @@ function BOREDInit() {
         ENABLE_RANDOM_BUTTON: true,
         SPOILER_ALL_DOWNVOTED: false,
         SPOILER_SELECTED_IMAGES: false,
+        DISABLE_ANIMATED_SPOILER: false,
 
         PANEL: {
             'Layout': {
@@ -49,7 +50,8 @@ function BOREDInit() {
                 AUTO_EXPAND_COMMENT_IMAGES: 'Click to Expand Comment Images',
                 ENABLE_FILE_UPLOAD_PREVIEW: 'Preview Manual File Uploads',
                 SHOW_ZOOM_CURSOR: 'Show Zoom Cursors',
-                SHOW_REVERSE_SEARCH_LINKS: 'Reverse Image Search Links'
+                SHOW_REVERSE_SEARCH_LINKS: 'Reverse Image Search Links',
+                DISABLE_ANIMATED_SPOILER: 'Disable Cheerilee spoiler animation'
             },
             'Comment Editing': {
                 ENABLE_MARKITUP: 'Enable markItUp! WYSIWYM Editing',
@@ -1055,12 +1057,25 @@ function BOREDInit() {
             return false;
         });
     }
+
+    function disableAnimation() {
+        // Replaces animated Cheerilee spoiler with non-animated one
+        $(document).ready(function(){
+            $('img[src="//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8wM1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMjUweDI1MCJdXQ.gif"]').each(function(){
+                $(this).attr('src', 'https://derpicdn.net/img/view/2014/9/6/716635.png');
+            });
+        });
+    }
    
     // Execution.
     BOREDConfig.loadSettings();
     
     if (BOREDConfig.SPOILER_SELECTED_IMAGES) {
         doHiderLinks();
+    }
+
+    if (BOREDConfig.DISABLE_ANIMATED_SPOILER) {
+        disableAnimation();
     }
 
     if (BOREDConfig.SPOILER_ALL_DOWNVOTED) {
