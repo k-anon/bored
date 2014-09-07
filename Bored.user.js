@@ -827,54 +827,30 @@ function BOREDInit() {
         }
     }
 
-    // Random Image Button. (It's fun!)
     function doRandomImage() {
-        var $imageList = $('#imagelist_container'),
-            apiUrl,
-            extractNumber = true;
-        
-        function makeLink(url, takeFromJson) {
-            var biggestNum,
-                imgNum,
-                maxIndex;
-
-            $.get(url, function(data) {
-                if (takeFromJson) {
-                    maxIndex = data.images.length - 1;
-                    imgNum = data.images[Math.floor(Math.random() * maxIndex)]
-                             .id_number;
-                } else {
-                    biggestNum = data.images[0].id_number;
-                    imgNum = Math.floor(Math.random() * biggestNum);
-                }
-                $('.searchbox').before(
-                    '<div class="metasection">' + 
-                    '    <a href="/images/' + imgNum +
-                         '" title="FUN!" style="background-color: pink">' +
-                    '        Random Img.' +
-                    '    </a>' +
-                    '</div>'
-                );
-            });
+        // Random Image Button. (It's fun!)
+        // Hide other random image button
+        $('a[href="/images/random"]').parent().remove();
+        $('a[href="/images"]').html('Images');
+        if($('body').css('background-color')=='rgb(56, 58, 59)'){
+            $('.searchbox').before(
+                '<div class="metasection">' + 
+                '    <a href="/images/random"' + 
+                ' title="FUN!" style="background-color: blue">' +
+                '        Random Img.' +
+                '    </a>' +
+                '</div>'
+            );
+        }else{
+            $('.searchbox').before(
+                '<div class="metasection">' + 
+                '    <a href="/images/random"' + 
+                ' title="FUN!" style="background-color: pink">' +
+                '        Random Img.' +
+                '    </a>' +
+                '</div>'
+            );
         }
-
-        if ($imageList.find('.metasection').first().text()
-                             .indexOf('Top Commented') !== -1) {
-            apiUrl = '/lists/top_commented.json';
-        } else if ($imageList.find('.metasection').first().text()
-                             .indexOf('All Time Top Scoring') !== -1) {
-            apiUrl = '/lists/all_time_top_scoring.json';
-        } else if ($imageList.find('.metasection').first().text()
-                             .indexOf('Top Scoring') !== -1) {
-            apiUrl = '/lists/top_scoring.json';
-        } else {
-            apiUrl = '/images.json';
-            extractNumber = false;
-        }
-        
-        apiUrl +=
-            '?nocomments=1&nofav=1' + ((extractNumber) ? '' : '&perpage=1');
-        makeLink(apiUrl, extractNumber);
     }
     
     function hideImagePreview() {
