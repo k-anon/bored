@@ -1040,6 +1040,13 @@ function BOREDInit() {
             $('img[src="//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8wM1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMjUweDI1MCJdXQ.gif"]').each(function(){
                 $(this).attr('src', 'https://derpicdn.net/img/view/2014/9/6/716635.png');
             });
+            $('img').mouseleave(function(){
+                window.setTimeout(function(){
+                    $('img[src="//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8wM1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMjUweDI1MCJdXQ.gif"]').each(function(){
+                        $(this).attr('src', 'https://derpicdn.net/img/view/2014/9/6/716635.png');
+                    });
+                }, 500);
+            });
         });
     }
    
