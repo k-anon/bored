@@ -1136,3 +1136,4 @@ function BOREDInit() {
     script.textContent = '(' + BOREDInit.toString() + ')();';
     document.getElementsByTagName('head')[0].appendChild(script);
 }());
+// vim: ts=4:sw=4:expandtab
