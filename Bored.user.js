@@ -38,6 +38,7 @@ function BOREDInit() {
         ENABLE_RANDOM_BUTTON: true,
         SPOILER_ALL_DOWNVOTED: false,
         SPOILER_SELECTED_IMAGES: false,
+        DISABLE_ANIMATED_SPOILER: false,
 
         PANEL: {
             'Layout': {
@@ -49,7 +50,8 @@ function BOREDInit() {
                 AUTO_EXPAND_COMMENT_IMAGES: 'Click to Expand Comment Images',
                 ENABLE_FILE_UPLOAD_PREVIEW: 'Preview Manual File Uploads',
                 SHOW_ZOOM_CURSOR: 'Show Zoom Cursors',
-                SHOW_REVERSE_SEARCH_LINKS: 'Reverse Image Search Links'
+                SHOW_REVERSE_SEARCH_LINKS: 'Reverse Image Search Links',
+                DISABLE_ANIMATED_SPOILER: 'Disable Cheerilee spoiler animation'
             },
             'Comment Editing': {
                 ENABLE_MARKITUP: 'Enable markItUp! WYSIWYM Editing',
@@ -825,54 +827,30 @@ function BOREDInit() {
         }
     }
 
-    // Random Image Button. (It's fun!)
     function doRandomImage() {
-        var $imageList = $('#imagelist_container'),
-            apiUrl,
-            extractNumber = true;
-        
-        function makeLink(url, takeFromJson) {
-            var biggestNum,
-                imgNum,
-                maxIndex;
-
-            $.get(url, function(data) {
-                if (takeFromJson) {
-                    maxIndex = data.images.length - 1;
-                    imgNum = data.images[Math.floor(Math.random() * maxIndex)]
-                             .id_number;
-                } else {
-                    biggestNum = data.images[0].id_number;
-                    imgNum = Math.floor(Math.random() * biggestNum);
-                }
-                $('.searchbox').before(
-                    '<div class="metasection">' + 
-                    '    <a href="/images/' + imgNum +
-                         '" title="FUN!" style="background-color: pink">' +
-                    '        Random Img.' +
-                    '    </a>' +
-                    '</div>'
-                );
-            });
+        // Random Image Button. (It's fun!)
+        // Hide other random image button
+        $('a[href="/images/random"]').parent().remove();
+        $('a[href="/images"]').html('Images');
+        if($('body').css('background-color')=='rgb(56, 58, 59)'){
+            $('.searchbox').before(
+                '<div class="metasection">' + 
+                '    <a href="/images/random"' + 
+                ' title="FUN!" style="background-color: blue">' +
+                '        Random Img.' +
+                '    </a>' +
+                '</div>'
+            );
+        }else{
+            $('.searchbox').before(
+                '<div class="metasection">' + 
+                '    <a href="/images/random"' + 
+                ' title="FUN!" style="background-color: pink">' +
+                '        Random Img.' +
+                '    </a>' +
+                '</div>'
+            );
         }
-
-        if ($imageList.find('.metasection').first().text()
-                             .indexOf('Top Commented') !== -1) {
-            apiUrl = '/lists/top_commented.json';
-        } else if ($imageList.find('.metasection').first().text()
-                             .indexOf('All Time Top Scoring') !== -1) {
-            apiUrl = '/lists/all_time_top_scoring.json';
-        } else if ($imageList.find('.metasection').first().text()
-                             .indexOf('Top Scoring') !== -1) {
-            apiUrl = '/lists/top_scoring.json';
-        } else {
-            apiUrl = '/images.json';
-            extractNumber = false;
-        }
-        
-        apiUrl +=
-            '?nocomments=1&nofav=1' + ((extractNumber) ? '' : '&perpage=1');
-        makeLink(apiUrl, extractNumber);
     }
     
     function hideImagePreview() {
@@ -1055,12 +1033,34 @@ function BOREDInit() {
             return false;
         });
     }
+
+    function disableAnimation() {
+        // Replaces animated Cheerilee spoiler with non-animated one
+        $(document).ready(function(){
+            var cheerilees= [];
+            $('img[src="//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8wM1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMjUweDI1MCJdXQ.gif"]').each(function(){
+                $(this).attr('src', 'https://derpicdn.net/img/view/2014/9/6/716635.png');
+                cheerilees.push($(this));
+            });
+            setInterval(function(){
+                for(var i=0;i<cheerilees.length;i++){
+                    if(cheerilees[i].attr('src')=='//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8wM1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMjUweDI1MCJdXQ.gif'){
+                        cheerilees[i].attr('src', 'https://derpicdn.net/img/view/2014/9/6/716635.png');
+                    }
+                }
+            }, 100);
+        });
+    }
    
     // Execution.
     BOREDConfig.loadSettings();
     
     if (BOREDConfig.SPOILER_SELECTED_IMAGES) {
         doHiderLinks();
+    }
+
+    if (BOREDConfig.DISABLE_ANIMATED_SPOILER) {
+        disableAnimation();
     }
 
     if (BOREDConfig.SPOILER_ALL_DOWNVOTED) {
@@ -1136,3 +1136,4 @@ function BOREDInit() {
     script.textContent = '(' + BOREDInit.toString() + ')();';
     document.getElementsByTagName('head')[0].appendChild(script);
 }());
+// vim: ts=4:sw=4:expandtab
