@@ -39,12 +39,14 @@ function BOREDInit() {
         SPOILER_ALL_DOWNVOTED: false,
         SPOILER_SELECTED_IMAGES: false,
         DISABLE_ANIMATED_SPOILER: false,
+        HIDE_USERNAME: false,
 
         PANEL: {
             'Layout': {
                 MOVE_WATCHED_LINK: 'Move "Watched" Link to Top-Right Corner',
                 NOSTALGIA_MODE: 'Nostalgia Mode (Not Serious!)',
-                ENABLE_RANDOM_BUTTON: 'Random Image Link (Fun! Fun! Fun!)'
+                ENABLE_RANDOM_BUTTON: 'Random Image Link (Fun! Fun! Fun!)',
+                HIDE_USERNAME: 'Hide Username'
             },
             'Images': {
                 AUTO_EXPAND_COMMENT_IMAGES: 'Click to Expand Comment Images',
@@ -1055,6 +1057,13 @@ function BOREDInit() {
             }, 100);
         });
     }
+
+    function hideUsername(){
+        $(document).ready(function(){
+            var tmp=$('.userbox').find('span.dropdown_container').children().first().find('span').html();
+            $('.userbox').find('span.dropdown_container').children().first().html('Anon'+tmp);
+        });
+    }
    
     // Execution.
     BOREDConfig.loadSettings();
@@ -1065,6 +1074,10 @@ function BOREDInit() {
 
     if (BOREDConfig.DISABLE_ANIMATED_SPOILER) {
         disableAnimation();
+    }
+
+    if(BOREDConfig.HIDE_USERNAME){
+        hideUsername();
     }
 
     if (BOREDConfig.SPOILER_ALL_DOWNVOTED) {
