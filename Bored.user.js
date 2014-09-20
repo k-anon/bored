@@ -40,13 +40,15 @@ function BOREDInit() {
         SPOILER_SELECTED_IMAGES: false,
         DISABLE_ANIMATED_SPOILER: false,
         HIDE_USERNAME: false,
+        REMOVE_CLUTTER: false,
 
         PANEL: {
             'Layout': {
                 MOVE_WATCHED_LINK: 'Move "Watched" Link to Top-Right Corner',
                 NOSTALGIA_MODE: 'Nostalgia Mode (Not Serious!)',
                 ENABLE_RANDOM_BUTTON: 'Random Image Link (Fun! Fun! Fun!)',
-                HIDE_USERNAME: 'Hide Username'
+                HIDE_USERNAME: 'Hide Username',
+                REMOVE_CLUTTER: 'Remove Clutter on Images Page'
             },
             'Images': {
                 AUTO_EXPAND_COMMENT_IMAGES: 'Click to Expand Comment Images',
@@ -1064,6 +1066,21 @@ function BOREDInit() {
             $('.userbox').find('span.dropdown_container').children().first().html('Anon'+tmp);
         });
     }
+
+    function removeClutter(){
+        $(document).ready(function(){
+            if(/^\/images.*/.test(window.location.pathname)){
+                $('#navigation,#header,#footer').hide();
+                $('.metabar').eq(1).hide();
+                var oldHtml=$('.metasection > strong').first().html();
+                $('.metasection > strong').first().html('<a>Show Clutter</a>').click(function(){
+                    $('#navigation,#header,#footer').show();
+                    $('.metabar').eq(1).show();
+                    $(this).html(oldHtml);
+                });
+            }
+        });
+    }
    
     // Execution.
     BOREDConfig.loadSettings();
@@ -1078,6 +1095,10 @@ function BOREDInit() {
 
     if(BOREDConfig.HIDE_USERNAME){
         hideUsername();
+    }
+
+    if(BOREDConfig.REMOVE_CLUTTER){
+        removeClutter();
     }
 
     if (BOREDConfig.SPOILER_ALL_DOWNVOTED) {
