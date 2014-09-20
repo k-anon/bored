@@ -833,7 +833,7 @@ function BOREDInit() {
         // Random Image Button. (It's fun!)
         // Hide other random image button
         $('a[href="/images/random"]').parent().remove();
-        $('a[href="/images"]').html('Images');
+        $('a[href="/images"]').first().html('Images');
         if($('body').css('background-color')=='rgb(56, 58, 59)'){
             $('.searchbox').before(
                 '<div class="metasection">' + 
