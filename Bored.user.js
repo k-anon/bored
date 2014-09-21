@@ -1070,14 +1070,16 @@ function BOREDInit() {
     function removeClutter(){
         $(document).ready(function(){
             if(/^\/images.*/.test(window.location.pathname)){
-                $('#navigation,#header,#footer').hide();
-                $('.metabar').eq(1).hide();
+                $('#navigation,#header,#footer,.imageinfo').hide();
+                $('.metabar').eq(0).hide();
                 var oldHtml=$('.metasection > strong').first().html();
                 $('.metasection > strong').first().html('<a>Show Clutter</a>').click(function(){
-                    $('#navigation,#header,#footer').show();
-                    $('.metabar').eq(1).show();
+                    $('#navigation,#header,#footer,.imageinfo').show();
+                    $('.metabar').eq(0).show();
                     $(this).html(oldHtml);
+                    $(this).detach().prependTo($('.metabar').eq(0).children().first());
                 });
+                $('.metasection > strong').first().detach().appendTo($('.metabar').eq(1));
             }
         });
     }
