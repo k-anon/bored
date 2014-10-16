@@ -14,9 +14,9 @@
 // @include     https://www.trixiebooru.org/*
 // @include     http://trixiebooru.org/*
 // @include     https://trixiebooru.org/*
-// @version     0.2.8c
+// @version     0.2.9
 // @updateURL   http://userscripts.org/scripts/source/137452.meta.js
-// @description Booru On Rails Extension Demo: Various (Likely Temp) Tweaks for Derpiboo.ru
+// @description Booru On Rails Extension for Derpibooru: Various Tweaks for Derpiboo.ru
 // ==/UserScript==
 
 function BOREDInit() {
@@ -44,7 +44,7 @@ function BOREDInit() {
             'Layout': {
                 MOVE_WATCHED_LINK: 'Move "Watched" Link to Top-Right Corner',
                 NOSTALGIA_MODE: 'Nostalgia Mode (Not Serious!)',
-                ENABLE_RANDOM_BUTTON: 'Random Image Link (Fun! Fun! Fun!)'
+                ENABLE_RANDOM_BUTTON: 'Alternative Random Image Link'
             },
             'Images': {
                 AUTO_EXPAND_COMMENT_IMAGES: 'Click to Expand Comment Images',
@@ -147,7 +147,7 @@ function BOREDInit() {
         });
 
         $panelDiv.submit(function () {
-            $.each(widgets, function(i, widget) {
+            $.each(widgets, function (i, widget) {
                 widget.writeSetting();
             });
             BOREDConfig.saveSettings();
@@ -179,14 +179,14 @@ function BOREDInit() {
     };
 
     BOREDConfig.loadSettings = function () {
-        var cooks = document.cookie.split(/\s*;\s*/).map(function(cook) {
+        var cooks = document.cookie.split(/\s*;\s*/).map(function (cook) {
             return cook.substring(0, cook.indexOf("="));
-        }).filter(function(cook) {
+        }).filter(function (cook) {
             return cook.indexOf("BOREDConfig") === 0;
         });
         // Checks if there are still some cookie-based config options
         if (cooks.length) {
-            cooks.forEach(function(cook) {
+            cooks.forEach(function (cook) {
                 var value = $.cookie(cook), option = cook.substring(12);
                 if (value && option !== "PANEL") {
                     BOREDConfig[option] = JSON.parse(value);
@@ -195,7 +195,7 @@ function BOREDInit() {
             });
             this.saveSettings(); // Saves the settings with the new method
         } else {
-            $.each(this, function(option, val) {
+            $.each(this, function (option, val) {
                 var value;
                 if (!(val instanceof Function) && option !== 'PANEL') {
                     value = localStorage['BOREDConfig_' + option];
@@ -208,7 +208,7 @@ function BOREDInit() {
     };
 
     BOREDConfig.saveSettings = function () {
-        $.each(BOREDConfig, function(option, val) {
+        $.each(BOREDConfig, function (option, val) {
             if (!(val instanceof Function) && option !== 'PANEL') {
                 localStorage['BOREDConfig_' + option] = JSON.stringify(val);
             }
@@ -337,7 +337,7 @@ function BOREDInit() {
             txtSel = "#comment_body";
             draftId = draftId[1];
             $comments = $('#comments');
-            $comments.ajaxSend(function(evt, xhr, opts) {
+            $comments.ajaxSend(function (evt, xhr, opts) {
                 // Saving the draft when changing comment page
                 if (opts.url.indexOf('/images/' + draftId + '/comments')
                         !== -1) {
@@ -348,7 +348,7 @@ function BOREDInit() {
                     }
                 }
             });
-            $(document).ajaxComplete(function(evt, xhr, opts) {
+            $(document).ajaxComplete(function (evt, xhr, opts) {
                 // If the request was a POST, then a comment was posted.
                 // saveDraft just trashes the draft, then.
                 if (opts.type === "POST") {
@@ -361,12 +361,14 @@ function BOREDInit() {
             txtSel = "#body";
             draftId = draftId[1];
             loadDraft(draftId, txtSel);
-            $($(txtSel)[0].form).submit(function() {
+            $($(txtSel)[0].form).submit(function () {
                 localStorage.removeItem("BOREDDraft_" + draftId);
             });
         }
 
-        $(window).unload(function() {saveDraft(draftId, txtSel);});
+        $(window).unload(function () {
+            saveDraft(draftId, txtSel);
+        });
     }
 
     function ImageResizer($image, maxWidth, maxHeight) {
@@ -828,11 +830,12 @@ function BOREDInit() {
     }
 
     function doRandomImage() {
-        // Random Image Button. (It's fun!)
+        // Alternative Random Image Button. (It's fun!)
         // Hide other random image button
         $('a[href="/images/random"]').parent().remove();
         $('a[href="/images"]').html('Images');
-        if($('body').css('background-color')=='rgb(56, 58, 59)'){
+        if ($('body').css('background-color')=='rgb(56, 58, 59)'){
+            // Adjust for dark CSS.
             $('.searchbox').before(
                 '<div class="metasection">' + 
                 '    <a href="/images/random"' + 
@@ -841,7 +844,8 @@ function BOREDInit() {
                 '    </a>' +
                 '</div>'
             );
-        }else{
+        } else {
+            // Default.
             $('.searchbox').before(
                 '<div class="metasection">' + 
                 '    <a href="/images/random"' + 
@@ -1036,18 +1040,23 @@ function BOREDInit() {
 
     function disableAnimation() {
         // Replaces animated Cheerilee spoiler with non-animated one
-        $(document).ready(function(){
-            var cheerilees= [];
-            $('img[src="//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8wM1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMjUweDI1MCJdXQ.gif"]').each(function(){
-                $(this).attr('src', 'https://derpicdn.net/img/view/2014/9/6/716635.png');
+        $(document).ready(function () {
+            var cheerilees = [],
+                stillURL = 'https://derpicdn.net/img/view/2014/9/6/716635.png',
+                animURL = '//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8w' +
+                          'M1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsic' +
+                          'CIsInRodW1iIiwiMjUweDI1MCJdXQ.gif',
+                i;
+            $('img[src="' + animURL + '"]').each(function () {
+                $(this).attr('src', stillURL);
                 cheerilees.push($(this));
             });
-            setInterval(function(){
-                for(var i=0;i<cheerilees.length;i++){
-                    if(cheerilees[i].attr('src')=='//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8wM1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMjUweDI1MCJdXQ.gif'){
-                        cheerilees[i].attr('src', 'https://derpicdn.net/img/view/2014/9/6/716635.png');
+            setInterval(function () {
+                $.each(cheerilees, function () {
+                    if (this.attr('src') === animURL) {
+                        this.attr('src', stillURL);
                     }
-                }
+                });
             }, 100);
         });
     }
