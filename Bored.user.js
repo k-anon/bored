@@ -40,15 +40,13 @@ function BOREDInit() {
         SPOILER_SELECTED_IMAGES: false,
         DISABLE_ANIMATED_SPOILER: false,
         HIDE_USERNAME: false,
-        REMOVE_CLUTTER: false,
 
         PANEL: {
             'Layout': {
                 MOVE_WATCHED_LINK: 'Move "Watched" Link to Top-Right Corner',
                 NOSTALGIA_MODE: 'Nostalgia Mode (Not Serious!)',
                 ENABLE_RANDOM_BUTTON: 'Random Image Link (Fun! Fun! Fun!)',
-                HIDE_USERNAME: 'Hide Username',
-                REMOVE_CLUTTER: 'Remove Clutter on Images Page'
+                HIDE_USERNAME: 'Hide Username'
             },
             'Images': {
                 AUTO_EXPAND_COMMENT_IMAGES: 'Click to Expand Comment Images',
@@ -1042,17 +1040,19 @@ function BOREDInit() {
         // Replaces animated Cheerilee spoiler with non-animated one
         $(document).ready(function(){
             var cheerilees= [];
-            $('img[src="//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8wM1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMTUweDE1MCJdXQ.gif"]').each(function(){
+            $('img[src="//derpicdn.net/media/W1siZiIsIjIwMTMvMDIvMDMvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMjUweDI1MCJdXQ.gif"]').each(function(){
                 $(this).attr('src', 'https://derpicdn.net/img/view/2014/9/6/716635.png').attr('style', $(this).parent().attr('style'));
                 cheerilees.push($(this));
             });
-            $('img[src="//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8wM1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMjUweDI1MCJdXQ.gif"]').each(function(){
+            
+            $('img[src="//derpicdn.net/media/W1siZiIsIjIwMTMvMDIvMDMvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMTUweDE1MCJdXQ.gif"]').each(function(){
                 $(this).attr('src', 'https://derpicdn.net/img/view/2014/9/6/716635.png');
+                $(this).attr('style', 'width:150px;height:150px;')
                 cheerilees.push($(this));
             });
             setInterval(function(){
                 for(var i=0;i<cheerilees.length;i++){
-                    if(cheerilees[i].attr('src')=='//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8wM1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMTUweDE1MCJdXQ.gif'||cheerilees[i].attr('src')=='//derpicdn.net/media/W1siZiIsIjIwMTNcLzAyXC8wM1wvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMjUweDI1MCJdXQ.gif'){
+                    if(cheerilees[i].attr('src')=='//derpicdn.net/media/W1siZiIsIjIwMTMvMDIvMDMvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMjUweDI1MCJdXQ.gif'||cheerilees[i].attr('src')=='//derpicdn.net/media/W1siZiIsIjIwMTMvMDIvMDMvMjJfNTJfNDRfMzE5X2FuaW1hdGVkLmdpZiJdLFsicCIsInRodW1iIiwiMTUweDE1MCJdXQ.gif'){
                         cheerilees[i].attr('src', 'https://derpicdn.net/img/view/2014/9/6/716635.png');
                     }
                 }
@@ -1067,21 +1067,6 @@ function BOREDInit() {
         });
     }
 
-    function removeClutter(){
-        $(document).ready(function(){
-            if(/^\/images.*/.test(window.location.pathname)){
-                $('#navigation,#header,#footer').hide();
-                $('.metabar').eq(1).hide();
-                var oldHtml=$('.metasection > strong').first().html();
-                $('.metasection > strong').first().html('<a>Show Clutter</a>').click(function(){
-                    $('#navigation,#header,#footer').show();
-                    $('.metabar').eq(1).show();
-                    $(this).html(oldHtml);
-                });
-            }
-        });
-    }
-   
     // Execution.
     BOREDConfig.loadSettings();
     
@@ -1095,10 +1080,6 @@ function BOREDInit() {
 
     if(BOREDConfig.HIDE_USERNAME){
         hideUsername();
-    }
-
-    if(BOREDConfig.REMOVE_CLUTTER){
-        removeClutter();
     }
 
     if (BOREDConfig.SPOILER_ALL_DOWNVOTED) {
